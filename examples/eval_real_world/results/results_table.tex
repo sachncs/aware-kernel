@@ -1,0 +1,16 @@
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{llllll}
+\toprule
+Dataset & Tier & Model & RMSE & Train (s) & Peak Mem (MB) \\
+\midrule
+WineQuality & Small & AwareKernel & 0.834624 ± 0.000000 & 6.2105 ± 0.0000 & 170.55 ± 0.00 \\
+WineQuality & Small & Ridge & 0.822297 ± 0.000000 & 0.0002 ± 0.0000 & 0.01 ± 0.00 \\
+WineQuality & Small & Nystrom & 0.884019 ± 0.000000 & 0.0426 ± 0.0000 & 13.59 ± 0.00 \\
+WineQuality & Small & RFF & 0.791505 ± 0.000000 & 0.1180 ± 0.0000 & 35.63 ± 0.00 \\
+\midrule
+\bottomrule
+\end{tabular}
+\caption{Evaluation results across datasets and budget tiers.}
+\end{table}
