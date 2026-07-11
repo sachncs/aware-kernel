@@ -5,7 +5,10 @@ import pytest
 
 from aware_kernel.aware.config import NumericsConfig
 from aware_kernel.global_basis.nystrom import NystromGlobalBasis
-from aware_kernel.global_basis.whitening import build_whitening_map, compute_kernel_on_landmarks
+from aware_kernel.global_basis.whitening import (
+    build_whitening_map,
+    compute_kernel_on_landmarks,
+)
 
 
 class TestComputeKernelOnLandmarks:

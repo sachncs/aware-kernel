@@ -9,9 +9,7 @@ from aware_kernel import AwareKernelEstimator
 class TestAwareKernelEstimator:
     """Tests for AwareKernelEstimator."""
 
-    def _make_data(
-        self, rng: np.random.Generator, n: int = 100, d: int = 4
-    ) -> tuple:
+    def _make_data(self, rng: np.random.Generator, n: int = 100, d: int = 4) -> tuple:
         """Helper to create synthetic data."""
         X = rng.standard_normal((n, d))
         true_w = rng.standard_normal(d)

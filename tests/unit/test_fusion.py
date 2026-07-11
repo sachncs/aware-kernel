@@ -3,14 +3,19 @@
 import numpy as np
 import pytest
 
+from aware_kernel.fusion.builder import FusedFeatureBuilder
 from aware_kernel.fusion.calibration import (
     calibrate_global_features,
     calibrate_local_features,
     compute_global_calibration,
     compute_local_calibration,
 )
-from aware_kernel.fusion.gate import compute_gate, fuse_features, sigmoid, split_fused_features
-from aware_kernel.fusion.builder import FusedFeatureBuilder
+from aware_kernel.fusion.gate import (
+    compute_gate,
+    fuse_features,
+    sigmoid,
+    split_fused_features,
+)
 
 
 class TestSigmoid:

@@ -75,7 +75,7 @@ class TestDenseEmbedder:
         """Setting theta with wrong shape should raise ValueError."""
         embedder = DenseEmbedder(input_dim=4, output_dim=8, rng=rng)
         with pytest.raises(ValueError, match="theta shape"):
-            embedder.theta = np.ones((3, 8))
+            embedder.set_theta(np.ones((3, 8)))
 
 
 class TestProjector:

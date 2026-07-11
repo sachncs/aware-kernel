@@ -6,7 +6,6 @@ These tests verify the algebraic guarantees from Section 6 of the method bluepri
 import numpy as np
 
 from aware_kernel.local_corrective.orthogonalizer import (
-    check_orthogonality,
     compute_orthogonalization_matrix,
     orthogonalize_local_features,
 )
@@ -46,5 +45,5 @@ class TestOrthogonalizationProperties:
         phi_l_perp = orthogonalize_local_features(phi_g, phi_l, eta_o=1e-4)
         cross = phi_g.T @ phi_l_perp
         denom = np.trace(phi_g.T @ phi_g) * np.trace(phi_l_perp.T @ phi_l_perp)
-        ratio = float(np.linalg.norm(cross, "fro")**2 / denom)
+        ratio = float(np.linalg.norm(cross, "fro") ** 2 / denom)
         assert ratio < 1e-8

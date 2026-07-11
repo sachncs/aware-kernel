@@ -1,7 +1,5 @@
 """Integration tests for refresh trigger behavior."""
 
-import numpy as np
-
 from aware_kernel.aware.config import RefreshConfig
 from aware_kernel.aware.state import DiscreteState, FullState
 from aware_kernel.refresh.controller import should_refresh
@@ -35,4 +33,6 @@ class TestRefreshTrigger:
         config = RefreshConfig(delta_hi=0.05, t_cool=1, t_warmup=10)
         for step in range(1, 10):
             state = FullState(step=step, discrete=DiscreteState(t_r=0, b_t=1))
-            assert not should_refresh(state, drift=1.0, val_gain=1.0, refresh_cost=0.1, config=config)
+            assert not should_refresh(
+                state, drift=1.0, val_gain=1.0, refresh_cost=0.1, config=config
+            )

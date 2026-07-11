@@ -74,7 +74,9 @@ class TestEndToEnd:
     def test_psd_invariant(self, rng: np.random.Generator) -> None:
         """Kernel matrix K = Phi Phi^T should be PSD."""
         X, y = self._make_data(rng, n=100)
-        config = TrainingConfig(embedding_dim=4, m_g=32, m_l=8, lambda_reg=1e-2, seed=42)
+        config = TrainingConfig(
+            embedding_dim=4, m_g=32, m_l=8, lambda_reg=1e-2, seed=42
+        )
         loop = TrainingLoop(config)
         state = loop.initialize_state(X, y)
 
@@ -82,6 +84,7 @@ class TestEndToEnd:
         embedder = state.continuous.theta["embedder"]
         embeddings = embedder.embed(X)
         from aware_kernel.embedding.projector import Projector
+
         projector = Projector(state.continuous.R)
         U = projector.transform(embeddings)
         phi = loop._build_fused_features(U, state.discrete)
@@ -93,13 +96,16 @@ class TestEndToEnd:
     def test_rank_bound(self, rng: np.random.Generator) -> None:
         """rank(K) <= r_g + m_l."""
         X, y = self._make_data(rng, n=100)
-        config = TrainingConfig(embedding_dim=4, m_g=32, m_l=8, lambda_reg=1e-2, seed=42)
+        config = TrainingConfig(
+            embedding_dim=4, m_g=32, m_l=8, lambda_reg=1e-2, seed=42
+        )
         loop = TrainingLoop(config)
         state = loop.initialize_state(X, y)
 
         embedder = state.continuous.theta["embedder"]
         embeddings = embedder.embed(X)
         from aware_kernel.embedding.projector import Projector
+
         projector = Projector(state.continuous.R)
         U = projector.transform(embeddings)
         phi = loop._build_fused_features(U, state.discrete)

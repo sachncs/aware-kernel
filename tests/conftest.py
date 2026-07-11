@@ -1,11 +1,14 @@
 """Shared fixtures and hypothesis strategies for aware-kernel tests."""
 
-from typing import Generator
-
 import numpy as np
 import pytest
 
-from aware_kernel.aware.config import MemoryMode, NumericsConfig, RefreshConfig, TrainingConfig
+from aware_kernel.aware.config import (
+    MemoryMode,
+    NumericsConfig,
+    RefreshConfig,
+    TrainingConfig,
+)
 
 
 @pytest.fixture
@@ -44,7 +47,9 @@ def refresh_config() -> RefreshConfig:
 
 
 @pytest.fixture
-def training_config(numerics_config: NumericsConfig, refresh_config: RefreshConfig) -> TrainingConfig:
+def training_config(
+    numerics_config: NumericsConfig, refresh_config: RefreshConfig
+) -> TrainingConfig:
     """Default training configuration for tests."""
     return TrainingConfig(
         embedding_dim=8,

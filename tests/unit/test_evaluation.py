@@ -22,7 +22,11 @@ from aware_kernel.evaluation.metrics import (
     compute_r2,
     compute_rmse,
 )
-from aware_kernel.evaluation.runner import ExperimentResult, ExperimentRunner, format_results_table
+from aware_kernel.evaluation.runner import (
+    ExperimentResult,
+    ExperimentRunner,
+    format_results_table,
+)
 
 
 class TestMakeLinearRegression:
@@ -93,7 +97,9 @@ class TestSplitTrainTest:
         """Train and test sizes should sum to total."""
         X = rng.standard_normal((100, 3))
         y = rng.standard_normal(100)
-        X_train, X_test, y_train, y_test = split_train_test(X, y, test_size=0.2, rng=rng)
+        X_train, X_test, y_train, y_test = split_train_test(
+            X, y, test_size=0.2, rng=rng
+        )
         assert X_train.shape[0] == 80
         assert X_test.shape[0] == 20
         assert y_train.shape[0] == 80
@@ -103,7 +109,9 @@ class TestSplitTrainTest:
         """Train and test sets should be disjoint."""
         X = rng.standard_normal((100, 3))
         y = rng.standard_normal(100)
-        X_train, X_test, y_train, y_test = split_train_test(X, y, test_size=0.3, rng=rng)
+        X_train, X_test, y_train, y_test = split_train_test(
+            X, y, test_size=0.3, rng=rng
+        )
         train_set = set(map(tuple, X_train))
         test_set = set(map(tuple, X_test))
         assert train_set.isdisjoint(test_set)
@@ -262,7 +270,9 @@ class TestFormatResultsTable:
     def test_contains_headers(self) -> None:
         """Output should contain markdown table headers."""
         result = ExperimentResult(
-            model_name="m", dataset_name="d", metrics={"rmse": 1.0, "mae": 0.5, "r2": 0.9, "max_abs_error": 2.0}
+            model_name="m",
+            dataset_name="d",
+            metrics={"rmse": 1.0, "mae": 0.5, "r2": 0.9, "max_abs_error": 2.0},
         )
         table = format_results_table([result])
         assert "| Model |" in table
@@ -271,7 +281,9 @@ class TestFormatResultsTable:
     def test_contains_data(self) -> None:
         """Output should contain the result data."""
         result = ExperimentResult(
-            model_name="m", dataset_name="d", metrics={"rmse": 1.0, "mae": 0.5, "r2": 0.9, "max_abs_error": 2.0}
+            model_name="m",
+            dataset_name="d",
+            metrics={"rmse": 1.0, "mae": 0.5, "r2": 0.9, "max_abs_error": 2.0},
         )
         table = format_results_table([result])
         assert "m | d" in table

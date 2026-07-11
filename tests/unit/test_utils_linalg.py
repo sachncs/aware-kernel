@@ -1,9 +1,7 @@
 """Unit tests for aware_kernel.utils.linalg."""
 
 import numpy as np
-import pytest
 
-from aware_kernel.aware.exceptions import ConditioningError
 from aware_kernel.utils.linalg import (
     diagonal_preconditioner,
     frobenius_norm,

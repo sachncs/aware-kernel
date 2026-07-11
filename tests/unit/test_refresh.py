@@ -10,7 +10,7 @@ from aware_kernel.aware.config import (
     TrainingConfig,
 )
 from aware_kernel.aware.exceptions import BudgetExceededError
-from aware_kernel.aware.state import ContinuousState, DiscreteState, FullState
+from aware_kernel.aware.state import DiscreteState, FullState
 from aware_kernel.refresh.budget import BudgetAccountant
 from aware_kernel.refresh.controller import should_refresh, transition_state
 from aware_kernel.refresh.drift import compute_drift
@@ -51,38 +51,50 @@ class TestShouldRefresh:
         """Drift below delta_hi should not trigger."""
         state = self._make_state()
         config = RefreshConfig(delta_hi=0.1)
-        assert not should_refresh(state, drift=0.05, val_gain=1.0, refresh_cost=1.0, config=config)
+        assert not should_refresh(
+            state, drift=0.05, val_gain=1.0, refresh_cost=1.0, config=config
+        )
 
     def test_cooldown_not_elapsed(self) -> None:
         """Cooldown not elapsed should not trigger."""
         state = self._make_state(step=10, t_r=0)
         config = RefreshConfig(delta_hi=0.1, t_cool=50)
-        assert not should_refresh(state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config)
+        assert not should_refresh(
+            state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config
+        )
 
     def test_warmup_not_passed(self) -> None:
         """Warmup not passed should not trigger."""
         state = self._make_state(step=5)
         config = RefreshConfig(delta_hi=0.1, t_warmup=10)
-        assert not should_refresh(state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config)
+        assert not should_refresh(
+            state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config
+        )
 
     def test_hysteresis_inactive(self) -> None:
         """Inactive hysteresis should not trigger."""
         state = self._make_state()
         state = state.copy_with(discrete=state.discrete.copy_with(b_t=0))
         config = RefreshConfig(delta_hi=0.1)
-        assert not should_refresh(state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config)
+        assert not should_refresh(
+            state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config
+        )
 
     def test_val_gain_below_cost(self) -> None:
         """Validation gain below cost threshold should not trigger."""
         state = self._make_state()
         config = RefreshConfig(delta_hi=0.1, gamma_cost=1.0)
-        assert not should_refresh(state, drift=0.2, val_gain=0.5, refresh_cost=1.0, config=config)
+        assert not should_refresh(
+            state, drift=0.2, val_gain=0.5, refresh_cost=1.0, config=config
+        )
 
     def test_all_conditions_met(self) -> None:
         """All conditions met should trigger."""
         state = self._make_state(step=100, t_r=0)
         config = RefreshConfig(delta_hi=0.1, t_cool=50, t_warmup=10, gamma_cost=0.01)
-        assert should_refresh(state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config)
+        assert should_refresh(
+            state, drift=0.2, val_gain=1.0, refresh_cost=1.0, config=config
+        )
 
 
 class TestTransitionState:
@@ -134,7 +146,11 @@ class TestRunRefreshPipeline:
         y_data = rng.standard_normal(n)
         state = FullState(step=10)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         new_discrete = run_refresh_pipeline(state, U_data, y_data, config, rng=rng)
@@ -152,7 +168,11 @@ class TestRunRefreshPipeline:
         y_data = rng.standard_normal(n)
         state = FullState(step=10)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         new_discrete = run_refresh_pipeline(state, U_data, y_data, config, rng=rng)
@@ -165,20 +185,30 @@ class TestRunRefreshPipeline:
         y_data = rng.standard_normal(n)
         state = FullState(step=10)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         new_discrete = run_refresh_pipeline(state, U_data, y_data, config, rng=rng)
         assert new_discrete.A.shape == (4, d)
 
-    def test_ablation_disable_residual_aware_anchors(self, rng: np.random.Generator) -> None:
+    def test_ablation_disable_residual_aware_anchors(
+        self, rng: np.random.Generator
+    ) -> None:
         """Disable residual-aware anchors should still produce valid anchors."""
         n, d = 100, 4
         U_data = rng.standard_normal((n, d))
         y_data = rng.standard_normal(n)
         state = FullState(step=10)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
             ablation=AblationConfig(disable_residual_aware_anchors=True),
         )
@@ -193,7 +223,11 @@ class TestRunRefreshPipeline:
         y_data = rng.standard_normal(n)
         state = FullState(step=10)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
             ablation=AblationConfig(disable_orthogonalization=True),
         )
@@ -209,7 +243,11 @@ class TestRunRefreshPipeline:
         initial_discrete = DiscreteState(c_g=2.0, c_l=3.0, rho=0.7)
         state = FullState(step=10, discrete=initial_discrete)
         config = TrainingConfig(
-            embedding_dim=d, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=d,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
             ablation=AblationConfig(static_scaling=True),
         )

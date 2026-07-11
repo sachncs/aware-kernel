@@ -60,7 +60,10 @@ class TestDiversityPenalty:
         phi_g = rng.standard_normal((20, 5))
         phi_l = rng.standard_normal((20, 5))
         # Project local orthogonal to global
-        from aware_kernel.local_corrective.orthogonalizer import orthogonalize_local_features
+        from aware_kernel.local_corrective.orthogonalizer import (
+            orthogonalize_local_features,
+        )
+
         phi_l_perp = orthogonalize_local_features(phi_g, phi_l, eta_o=1e-4)
         div = diversity_penalty(phi_g, phi_l_perp)
         assert div < 1e-5
@@ -88,7 +91,11 @@ class TestTrainingLoop:
         """Should initialize a valid FullState."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -101,7 +108,11 @@ class TestTrainingLoop:
         """Continuous update should change R."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -114,7 +125,11 @@ class TestTrainingLoop:
         """Evaluate should return metrics."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -127,7 +142,11 @@ class TestTrainingLoop:
         """Continuous update with optimizer should change R deterministically."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
             lr=1e-3,
         )
@@ -144,7 +163,11 @@ class TestTrainingLoop:
         """Refresh should be blocked when budget is exhausted."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0),
             total_refresh_budget=0.0,
             refresh_cost=1.0,
@@ -155,11 +178,17 @@ class TestTrainingLoop:
         new_state = loop.maybe_refresh(state, X, y, val_gain=10.0)
         assert new_state.discrete.t_r == state.discrete.t_r
 
-    def test_maybe_refresh_ablation_disable_refresh(self, rng: np.random.Generator) -> None:
+    def test_maybe_refresh_ablation_disable_refresh(
+        self, rng: np.random.Generator
+    ) -> None:
         """Ablation disable_refresh should skip refresh regardless of trigger."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0),
             ablation=AblationConfig(disable_refresh=True),
         )
@@ -169,11 +198,17 @@ class TestTrainingLoop:
         new_state = loop.maybe_refresh(state, X, y, val_gain=10.0)
         assert new_state.discrete.t_r == state.discrete.t_r
 
-    def test_maybe_refresh_ablation_disable_hysteresis(self, rng: np.random.Generator) -> None:
+    def test_maybe_refresh_ablation_disable_hysteresis(
+        self, rng: np.random.Generator
+    ) -> None:
         """Ablation disable_hysteresis should allow refresh with b_t=0."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0, t_cool=0, t_warmup=0),
             ablation=AblationConfig(disable_hysteresis=True),
             total_refresh_budget=float("inf"),
@@ -191,11 +226,17 @@ class TestTrainingLoop:
         # but we can assert the code path runs without error.
         assert new_state is not None
 
-    def test_maybe_refresh_ablation_disable_cooldown(self, rng: np.random.Generator) -> None:
+    def test_maybe_refresh_ablation_disable_cooldown(
+        self, rng: np.random.Generator
+    ) -> None:
         """Ablation disable_cooldown should remove cooldown constraint."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, t_cool=1000),
             ablation=AblationConfig(disable_cooldown=True),
         )
@@ -210,7 +251,11 @@ class TestTrainingLoop:
         """Evaluate with missing embedder should return inf rmse."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -223,7 +268,11 @@ class TestTrainingLoop:
         """Evaluate with missing coefficients should return inf rmse."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -236,7 +285,11 @@ class TestTrainingLoop:
         """maybe_refresh with missing embedder should return state unchanged."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0),
         )
         loop = TrainingLoop(config)
@@ -248,11 +301,17 @@ class TestTrainingLoop:
         new_state = loop.maybe_refresh(state, X, y, val_gain=10.0)
         assert new_state.discrete.t_r == state.discrete.t_r
 
-    def test_maybe_refresh_triggers_and_updates_r_ref(self, rng: np.random.Generator) -> None:
+    def test_maybe_refresh_triggers_and_updates_r_ref(
+        self, rng: np.random.Generator
+    ) -> None:
         """maybe_refresh should trigger refresh and set _R_ref for drift tracking."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0, t_cool=0, t_warmup=0),
             total_refresh_budget=float("inf"),
         )
@@ -270,7 +329,11 @@ class TestTrainingLoop:
         """_build_fused_features with uninitialized discrete state should raise."""
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3),
         )
         loop = TrainingLoop(config)
@@ -293,7 +356,11 @@ class TestTrainingLoop:
         counter = RefreshCounter()
         X, y = self._make_data(rng)
         config = TrainingConfig(
-            embedding_dim=4, m_g=16, m_l=4, lambda_reg=1e-2, seed=42,
+            embedding_dim=4,
+            m_g=16,
+            m_l=4,
+            lambda_reg=1e-2,
+            seed=42,
             refresh=RefreshConfig(k_local=3, delta_hi=0.0, t_cool=0, t_warmup=0),
             total_refresh_budget=float("inf"),
         )
@@ -318,9 +385,9 @@ class TestCallbacks:
     def test_logging_callback(self) -> None:
         """LoggingCallback should instantiate."""
         cb = LoggingCallback(log_interval=5)
-        assert cb._log_interval == 5
+        assert cb.log_interval == 5
 
     def test_checkpoint_callback(self) -> None:
         """CheckpointCallback should instantiate."""
         cb = CheckpointCallback(save_interval=10, path_prefix="test")
-        assert cb._save_interval == 10
+        assert cb.save_interval == 10

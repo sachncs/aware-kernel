@@ -15,14 +15,18 @@ from aware_kernel.fusion.calibration import (
 class TestCalibrationStability:
     """Tests for calibration stability under edge cases."""
 
-    def test_global_calibration_prevents_collapse(self, rng: np.random.Generator) -> None:
+    def test_global_calibration_prevents_collapse(
+        self, rng: np.random.Generator
+    ) -> None:
         """c_g should remain positive even when all features are zero."""
         phi_g = np.zeros((10, 5))
         c_g = compute_global_calibration(phi_g, epsilon_c=1e-8)
         assert c_g > 0.0
         assert c_g == pytest.approx(np.sqrt(1e-8), abs=1e-12)
 
-    def test_local_calibration_prevents_collapse(self, rng: np.random.Generator) -> None:
+    def test_local_calibration_prevents_collapse(
+        self, rng: np.random.Generator
+    ) -> None:
         """c_l should remain positive even when all features are zero."""
         phi_l = np.zeros((10, 5))
         c_l = compute_local_calibration(phi_l, epsilon_c=1e-8)

@@ -2,7 +2,12 @@
 
 import pytest
 
-from aware_kernel.aware.config import MemoryMode, NumericsConfig, RefreshConfig, TrainingConfig
+from aware_kernel.aware.config import (
+    MemoryMode,
+    NumericsConfig,
+    RefreshConfig,
+    TrainingConfig,
+)
 
 
 class TestNumericsConfig:

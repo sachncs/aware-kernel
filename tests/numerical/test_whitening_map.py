@@ -22,7 +22,9 @@ class TestWhiteningMapProperties:
         eigenvalues = rng.exponential(scale=1.0, size=20)
         eigenvalues[0] = -0.1  # inject a negative one
         clipped = eigenvalue_clip(eigenvalues, min_val=0.0)
-        eps = compute_epsilon(trace_w=float(np.sum(clipped)), m_g=20, alpha_epsilon=1e-5)
+        eps = compute_epsilon(
+            trace_w=float(np.sum(clipped)), m_g=20, alpha_epsilon=1e-5
+        )
         truncated = soft_spectral_truncate(clipped, tau=1e-3, epsilon=eps)
         assert np.all(truncated >= 0.0)
 
@@ -44,7 +46,9 @@ class TestWhiteningMapProperties:
 
         eigenvalues, U = np.linalg.eigh(W)
         clipped = eigenvalue_clip(eigenvalues, min_val=0.0)
-        eps = compute_epsilon(trace_w=float(np.sum(clipped)), m_g=m_g, alpha_epsilon=1e-5)
+        eps = compute_epsilon(
+            trace_w=float(np.sum(clipped)), m_g=m_g, alpha_epsilon=1e-5
+        )
         truncated = soft_spectral_truncate(clipped, tau=1e-3, epsilon=eps)
         indices, rank = retained_indices(clipped, tau=1e-3)
 

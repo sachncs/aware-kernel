@@ -190,9 +190,12 @@ class TestOrthogonalizeLocalFeatures:
         phi_l_perp = orthogonalize_local_features(phi_g, phi_l, eta_o=1e-4)
         cross = phi_g.T @ phi_l_perp
         # Relative tolerance scaled by feature norms
-        denom = float(np.linalg.norm(phi_g.T @ phi_g, "fro") * np.linalg.norm(phi_l_perp.T @ phi_l_perp, "fro"))
+        denom = float(
+            np.linalg.norm(phi_g.T @ phi_g, "fro")
+            * np.linalg.norm(phi_l_perp.T @ phi_l_perp, "fro")
+        )
         if denom > 0:
-            rel_norm = float(np.linalg.norm(cross, "fro")**2 / denom)
+            rel_norm = float(np.linalg.norm(cross, "fro") ** 2 / denom)
             assert rel_norm < 1e-5
 
 
