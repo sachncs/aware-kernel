@@ -37,8 +37,6 @@ Dependencies
 * ``aware_kernel.utils.sampling`` -- k-means++ landmark selection.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from aware_kernel.aware.config import NumericsConfig
@@ -132,7 +130,7 @@ class NystromGlobalBasis:
         U_data: Array,
         m_g: int,
         config: NumericsConfig,
-        rng: Optional[np.random.Generator] = None,
+        rng: np.random.Generator | None = None,
     ) -> "NystromGlobalBasis":
         """Build a Nystr\"omGlobalBasis by selecting landmarks from data.
 
@@ -190,7 +188,8 @@ class NystromGlobalBasis:
                 + np.sum(u_query**2, axis=1).reshape(-1, 1)
                 - 2.0 * (u_query @ self.Z.T)
             )
-        return np.exp(-sq_dists)
+        result: Array = np.exp(-sq_dists)
+        return result
 
     def build_features(self, u_query: Array) -> Array:
         """Build global features ``phi_g(u_query) = k(u_query, Z) @ M_g``.

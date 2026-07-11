@@ -46,7 +46,7 @@ def ridge_prediction_loss(y: Array, phi: Array, w: Array) -> float:
     Returns:
         Sum of squared residuals.
     """
-    residuals = y - phi @ w
+    residuals: Array = y - phi @ w
     return float(np.sum(residuals**2))
 
 
@@ -64,7 +64,7 @@ def orthogonality_penalty(R: Array) -> float:
         Orthogonality penalty (non-negative).
     """
     d = R.shape[0]
-    return float(np.sum((R.T @ R - np.eye(d))**2))
+    return float(np.sum((R.T @ R - np.eye(d)) ** 2))
 
 
 def diversity_penalty(

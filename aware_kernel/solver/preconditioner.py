@@ -40,4 +40,5 @@ def diagonal_preconditioner(s: Array) -> Array:
     """
     diag = np.diagonal(s)
     diag = np.where(diag <= 0, 1.0, diag)
-    return 1.0 / np.sqrt(diag)
+    result: Array = 1.0 / np.sqrt(diag)
+    return result

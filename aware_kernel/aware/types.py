@@ -25,12 +25,12 @@ Dependencies
 Only ``numpy`` and ``typing`` from the standard library are required.
 """
 
-from typing import Protocol, Union
+from typing import Any, Protocol
 
 import numpy as np
 
-Array = Union[np.ndarray]
-FeatureMatrix = np.ndarray
+Array = np.ndarray[Any, Any]
+FeatureMatrix = np.ndarray[Any, Any]
 
 
 class Embedder(Protocol):
@@ -167,7 +167,7 @@ class RefreshPolicy(Protocol):
     hysteresis, and budget-scaled validation gain.
     """
 
-    def should_refresh(self, state: object, metrics: dict) -> bool:
+    def should_refresh(self, state: object, metrics: dict[str, Any]) -> bool:
         """Evaluate whether a refresh should trigger.
 
         Args:

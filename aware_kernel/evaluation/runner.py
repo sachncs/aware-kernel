@@ -19,8 +19,9 @@ Typical usage::
 """
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -43,7 +44,7 @@ class ExperimentResult:
 
     model_name: str
     dataset_name: str
-    metrics: dict = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
     fit_time_seconds: float = 0.0
     predict_time_seconds: float = 0.0
 
@@ -60,14 +61,14 @@ class ExperimentRunner:
     instance with no carryover from previous fits.
     """
 
-    def __init__(self, seed: Optional[int] = None) -> None:
+    def __init__(self, seed: int | None = None) -> None:
         """Initialize runner.
 
         Args:
             seed: Global random seed for reproducibility.
         """
         self.seed = seed
-        self.rng: Optional[np.random.Generator] = None
+        self.rng: np.random.Generator | None = None
 
     def _get_rng(self) -> np.random.Generator:
         """Return a deterministic RNG, creating one if necessary."""
@@ -78,7 +79,7 @@ class ExperimentRunner:
     def run_experiment(
         self,
         model_name: str,
-        model: object,
+        model: Any,
         dataset_name: str,
         X: Array,
         y: Array,
@@ -126,10 +127,10 @@ class ExperimentRunner:
 
     def run_suite(
         self,
-        models: Dict[str, Callable[[], object]],
-        datasets: Dict[str, Callable[[np.random.Generator], tuple]],
+        models: dict[str, Callable[[], object]],
+        datasets: dict[str, Callable[[np.random.Generator], tuple[Any, Any]]],
         test_size: float = 0.2,
-    ) -> List[ExperimentResult]:
+    ) -> list[ExperimentResult]:
         """Run all model factories on all dataset factories.
 
         Executes the Cartesian product of models × datasets, generating
@@ -147,7 +148,7 @@ class ExperimentRunner:
         Returns:
             List of ``ExperimentResult`` objects, one per (model, dataset) pair.
         """
-        results: List[ExperimentResult] = []
+        results: list[ExperimentResult] = []
         rng = self._get_rng()
 
         for dataset_name, dataset_factory in datasets.items():
@@ -172,7 +173,7 @@ class ExperimentRunner:
         return results
 
 
-def format_results_table(results: List[ExperimentResult]) -> str:
+def format_results_table(results: list[ExperimentResult]) -> str:
     """Format experiment results as a markdown table.
 
     Produces a GitHub-flavored markdown table with columns for model name,

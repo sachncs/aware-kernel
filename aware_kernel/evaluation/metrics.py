@@ -86,7 +86,7 @@ def compute_max_abs_error(y_true: Array, y_pred: Array) -> float:
     return float(np.max(np.abs(y_true - y_pred)))
 
 
-def compute_all_metrics(y_true: Array, y_pred: Array) -> dict:
+def compute_all_metrics(y_true: Array, y_pred: Array) -> dict[str, float]:
     """Compute all available metrics.
 
     Args:

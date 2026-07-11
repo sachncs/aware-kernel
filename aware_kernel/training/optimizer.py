@@ -31,8 +31,6 @@ The number of directions ``n_dir`` scales with the problem size:
 estimates for larger matrices.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from aware_kernel.aware.config import TrainingConfig
@@ -116,7 +114,9 @@ class OuterObjectiveOptimizer:
         loop = TrainingLoop(config)
 
         # Build features with candidate R.
-        embedder = state.continuous.theta.get("embedder") if state.continuous.theta else None
+        embedder = (
+            state.continuous.theta.get("embedder") if state.continuous.theta else None
+        )
         if embedder is None:
             raise RuntimeError("Embedder not found in state")
 
@@ -207,7 +207,9 @@ class OuterObjectiveOptimizer:
             R_minus = R - self.fd_epsilon * D
 
             obj_plus = self._evaluate_objective(R_plus, state, X_batch, y_batch, config)
-            obj_minus = self._evaluate_objective(R_minus, state, X_batch, y_batch, config)
+            obj_minus = self._evaluate_objective(
+                R_minus, state, X_batch, y_batch, config
+            )
 
             # Central difference approximation of the directional derivative.
             grad += (obj_plus - obj_minus) / (2.0 * self.fd_epsilon) * D

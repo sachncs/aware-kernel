@@ -54,7 +54,8 @@ def compute_global_calibration(
     """
     n = phi_g.shape[0]
     trace = float(np.trace(phi_g.T @ phi_g))
-    return np.sqrt(trace / n + epsilon_c)
+    val: float = np.sqrt(trace / n + epsilon_c)
+    return val
 
 
 def compute_local_calibration(
@@ -74,7 +75,8 @@ def compute_local_calibration(
     """
     n = phi_l_perp.shape[0]
     trace = float(np.trace(phi_l_perp.T @ phi_l_perp))
-    return np.sqrt(trace / n + epsilon_c)
+    val: float = np.sqrt(trace / n + epsilon_c)
+    return val
 
 
 def calibrate_global_features(phi_g: Array, c_g: float) -> Array:

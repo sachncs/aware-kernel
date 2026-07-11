@@ -21,7 +21,7 @@ This is O(n * m^2) per call, which is more expensive than the streamed
 mode's O(m^2) but provides the full feature matrix for other uses.
 """
 
-from typing import Optional
+from typing import Any
 
 import numpy as np
 
@@ -43,7 +43,11 @@ class CachedMemoryAccumulator(BaseMemoryAccumulator):
             before the first accumulation.
     """
 
-    def __init__(self, feature_dim: int, dtype: np.dtype = np.float64) -> None:
+    def __init__(
+        self,
+        feature_dim: int,
+        dtype: type[np.floating[Any]] = np.float64,
+    ) -> None:
         """Initialize cached accumulator.
 
         Args:
@@ -51,8 +55,8 @@ class CachedMemoryAccumulator(BaseMemoryAccumulator):
             dtype: Numeric dtype for accumulations.
         """
         super().__init__(feature_dim, dtype)
-        self.Phi: Optional[Array] = None
-        self.y: Optional[Array] = None
+        self.Phi: Array | None = None
+        self.y: Array | None = None
 
     def accumulate(self, phi_batch: Array, y_batch: Array) -> None:
         """Accumulate a mini-batch by appending to stored ``Phi``.

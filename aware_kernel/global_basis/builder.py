@@ -8,14 +8,11 @@ global features from projected embeddings without directly coupling to
 the Nyström implementation details.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from aware_kernel.aware.config import NumericsConfig
-from aware_kernel.aware.types import Array, FeatureBuilder
+from aware_kernel.aware.types import Array
 from aware_kernel.global_basis.nystrom import NystromGlobalBasis
-from aware_kernel.utils.sampling import kmeans_pp
 
 
 class GlobalFeatureBuilder:
@@ -48,7 +45,7 @@ class GlobalFeatureBuilder:
         U_data: Array,
         m_g: int,
         config: NumericsConfig,
-        rng: Optional[np.random.Generator] = None,
+        rng: np.random.Generator | None = None,
     ) -> "GlobalFeatureBuilder":
         """Build a GlobalFeatureBuilder by selecting landmarks from data.
 

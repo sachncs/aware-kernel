@@ -79,7 +79,7 @@ def predict_variance(
     # Batch prediction using Einstein summation for efficiency.
     self_terms = np.sum(phi_query * phi_query, axis=1)
     corrections = np.einsum("ij,jk,ik->i", phi_query, s_inv, phi_query)
-    variances = np.maximum(self_terms - corrections, 0.0)
+    variances: Array = np.maximum(self_terms - corrections, 0.0)
     return variances
 
 

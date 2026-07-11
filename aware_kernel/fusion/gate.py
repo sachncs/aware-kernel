@@ -43,7 +43,8 @@ def sigmoid(a: float) -> float:
     Returns:
         Sigmoid value in ``(0, 1)``.
     """
-    return 1.0 / (1.0 + np.exp(-a))
+    val: float = 1.0 / (1.0 + np.exp(-a))
+    return val
 
 
 def compute_gate(a: float) -> float:

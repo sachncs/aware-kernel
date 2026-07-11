@@ -23,8 +23,6 @@ have a large absolute drift even for small relative changes, while a
 normalized metric correctly captures the fractional change.
 """
 
-import numpy as np
-
 from aware_kernel.aware.types import Array
 from aware_kernel.utils.linalg import relative_frobenius_drift
 

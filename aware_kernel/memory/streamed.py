@@ -27,6 +27,8 @@ are needed (e.g., during the refresh pipeline), use the cached mode
 instead.
 """
 
+from typing import Any
+
 import numpy as np
 
 from aware_kernel.aware.types import Array
@@ -45,7 +47,11 @@ class StreamedMemoryAccumulator(BaseMemoryAccumulator):
         n: Count of accumulated samples.
     """
 
-    def __init__(self, feature_dim: int, dtype: np.dtype = np.float64) -> None:
+    def __init__(
+        self,
+        feature_dim: int,
+        dtype: type[np.floating[Any]] = np.float64,
+    ) -> None:
         """Initialize streamed accumulator.
 
         Args:

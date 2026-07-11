@@ -40,8 +40,6 @@ construction.  The KD-tree reduces the per-point cost from O(m_l * d)
 to O(k * log(m_l) * d).
 """
 
-from typing import Optional
-
 import numpy as np
 from scipy.spatial import KDTree
 
@@ -121,7 +119,8 @@ def compute_local_normalizers(s: Array, eta: float = 1e-8) -> Array:
     Returns:
         Normalization vector ``d`` of shape ``(m_l,)``.
     """
-    return np.sum(s**2, axis=0) + eta
+    result: Array = np.sum(s**2, axis=0) + eta
+    return result
 
 
 def build_local_features(

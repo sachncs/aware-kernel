@@ -32,17 +32,17 @@ experiments to selectively disable individual steps (e.g., skipping
 orthogonalization or using pure coverage-based anchor selection).
 """
 
-from typing import Optional
-
 import numpy as np
 
-from aware_kernel.aware.config import NumericsConfig, RefreshConfig, TrainingConfig
+from aware_kernel.aware.config import TrainingConfig
 from aware_kernel.aware.state import DiscreteState, FullState
 from aware_kernel.aware.types import Array
-from aware_kernel.embedding.projector import Projector
 from aware_kernel.fusion.builder import FusedFeatureBuilder
 from aware_kernel.global_basis.nystrom import NystromGlobalBasis
-from aware_kernel.local_corrective.anchors import compute_residuals, residual_aware_sample
+from aware_kernel.local_corrective.anchors import (
+    compute_residuals,
+    residual_aware_sample,
+)
 from aware_kernel.local_corrective.orthogonalizer import orthogonalize_local_features
 from aware_kernel.local_corrective.sparse_features import build_local_features
 from aware_kernel.utils.sampling import kmeans_pp
@@ -53,7 +53,7 @@ def run_refresh_pipeline(
     U_data: Array,
     y_data: Array,
     config: TrainingConfig,
-    rng: Optional[np.random.Generator] = None,
+    rng: np.random.Generator | None = None,
 ) -> DiscreteState:
     """Execute the full discrete refresh pipeline.
 
@@ -136,7 +136,11 @@ def run_refresh_pipeline(
         Phi_l_perp = orthogonalize_local_features(Phi_g, Phi_l, eta_o)
 
     # Step 7: Recompute scaling coefficients.
-    if config.ablation.static_scaling and state.discrete.c_g is not None and state.discrete.c_l is not None:
+    if (
+        config.ablation.static_scaling
+        and state.discrete.c_g is not None
+        and state.discrete.c_l is not None
+    ):
         # Ablation: freeze calibration scalars after first refresh.
         fused_builder = FusedFeatureBuilder(
             c_g=state.discrete.c_g,

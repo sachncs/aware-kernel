@@ -20,8 +20,6 @@ All baselines use ``DirectRidgeSolver`` (Cholesky) for consistency with
 the aware-kernel solver path.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from aware_kernel.aware.types import Array
@@ -48,7 +46,7 @@ class RidgeBaseline:
         """
         self.lambda_reg = lambda_reg
         self.solver = DirectRidgeSolver(lambda_reg=lambda_reg)
-        self.w: Optional[Array] = None
+        self.w: Array | None = None
 
     def fit(self, X: Array, y: Array) -> None:
         """Fit ridge regression.
@@ -94,7 +92,7 @@ class NystromRidgeBaseline:
         self,
         m_g: int = 512,
         lambda_reg: float = 1e-3,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         """Initialize baseline.
 
@@ -106,8 +104,8 @@ class NystromRidgeBaseline:
         self.m_g = m_g
         self.lambda_reg = lambda_reg
         self.seed = seed
-        self.basis: Optional[NystromGlobalBasis] = None
-        self.w: Optional[Array] = None
+        self.basis: NystromGlobalBasis | None = None
+        self.w: Array | None = None
         self.solver = DirectRidgeSolver(lambda_reg=lambda_reg)
 
     def fit(self, X: Array, y: Array) -> None:
@@ -169,7 +167,7 @@ class RandomFeatureBaseline:
         n_features: int = 1000,
         gamma: float = 1.0,
         lambda_reg: float = 1e-3,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         """Initialize baseline.
 
@@ -183,9 +181,9 @@ class RandomFeatureBaseline:
         self.gamma = gamma
         self.lambda_reg = lambda_reg
         self.seed = seed
-        self.omega: Optional[Array] = None
-        self.b: Optional[Array] = None
-        self.w: Optional[Array] = None
+        self.omega: Array | None = None
+        self.b: Array | None = None
+        self.w: Array | None = None
         self.solver = DirectRidgeSolver(lambda_reg=lambda_reg)
 
     def _build_features(self, X: Array) -> Array:
@@ -203,7 +201,8 @@ class RandomFeatureBaseline:
         if self.omega is None or self.b is None:
             raise RuntimeError("RandomFeatureBaseline parameters not initialized")
         z = X @ self.omega + self.b
-        return np.cos(z) * np.sqrt(2.0 / self.n_features)
+        result: Array = np.cos(z) * np.sqrt(2.0 / self.n_features)
+        return result
 
     def fit(self, X: Array, y: Array) -> None:
         """Fit random feature ridge regression.

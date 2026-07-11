@@ -19,8 +19,6 @@ Four dataset types are provided, covering increasing difficulty:
 All generators accept an ``np.random.Generator`` for reproducibility.
 """
 
-from typing import Optional, Tuple
-
 import numpy as np
 
 from aware_kernel.aware.types import Array
@@ -31,7 +29,7 @@ def make_linear_regression(
     n_samples: int = 500,
     n_features: int = 10,
     noise: float = 0.1,
-) -> Tuple[Array, Array, Array]:
+) -> tuple[Array, Array, Array]:
     """Generate a synthetic linear regression dataset.
 
     Produces ``y = X @ true_w + noise * epsilon`` where ``X`` and
@@ -61,7 +59,7 @@ def make_polynomial_regression(
     n_samples: int = 500,
     degree: int = 3,
     noise: float = 0.1,
-) -> Tuple[Array, Array]:
+) -> tuple[Array, Array]:
     """Generate a synthetic univariate polynomial regression dataset.
 
     Produces ``y = sum_p coeffs[p] * x^p + noise`` where ``x`` is
@@ -94,7 +92,7 @@ def make_high_dim_regression(
     n_features: int = 100,
     n_informative: int = 10,
     noise: float = 0.1,
-) -> Tuple[Array, Array, Array]:
+) -> tuple[Array, Array, Array]:
     """Generate a high-dimensional regression with sparse true weights.
 
     Produces ``y = X @ true_w + noise * epsilon`` where ``true_w`` has
@@ -124,7 +122,7 @@ def make_heteroscedastic_regression(
     rng: np.random.Generator,
     n_samples: int = 500,
     noise_base: float = 0.05,
-) -> Tuple[Array, Array]:
+) -> tuple[Array, Array]:
     """Generate a regression dataset with input-dependent noise.
 
     Produces ``y = sin(2*pi*x) + noise_base * (1 + |x|) * epsilon``.
@@ -152,8 +150,8 @@ def split_train_test(
     X: Array,
     y: Array,
     test_size: float = 0.2,
-    rng: Optional[np.random.Generator] = None,
-) -> Tuple[Array, Array, Array, Array]:
+    rng: np.random.Generator | None = None,
+) -> tuple[Array, Array, Array, Array]:
     """Split data into train and test sets.
 
     Uses a simple index-based split (no stratification) appropriate for
@@ -170,10 +168,7 @@ def split_train_test(
     """
     n = X.shape[0]
     n_test = int(n * test_size)
-    if rng is not None:
-        perm = rng.permutation(n)
-    else:
-        perm = np.arange(n)
+    perm = rng.permutation(n) if rng is not None else np.arange(n)
     test_idx = perm[:n_test]
     train_idx = perm[n_test:]
     return X[train_idx], X[test_idx], y[train_idx], y[test_idx]

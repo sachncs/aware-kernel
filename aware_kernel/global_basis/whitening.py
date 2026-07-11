@@ -33,8 +33,6 @@ O(m_g^3) for the eigendecomposition, dominated by the symmetric eigenvalue
 computation on the ``m_g x m_g`` kernel matrix.
 """
 
-from typing import Tuple
-
 import numpy as np
 
 from aware_kernel.aware.config import NumericsConfig
@@ -50,7 +48,7 @@ from aware_kernel.utils.numerics import (
 def build_whitening_map(
     W: Array,
     config: NumericsConfig,
-) -> Tuple[Array, Array, Array, int]:
+) -> tuple[Array, Array, Array, int]:
     """Build the soft-truncated whitening map ``M_g``.
 
     Given the kernel-on-landmarks matrix ``W = k(Z, Z)``, computes the
@@ -160,4 +158,5 @@ def compute_kernel_on_landmarks(Z: Array, gamma: float = 1.0) -> Array:
         + np.sum(Z**2, axis=1).reshape(1, -1)
         - 2.0 * (Z @ Z.T)
     )
-    return np.exp(-gamma * sq_dists)
+    result: Array = np.exp(-gamma * sq_dists)
+    return result

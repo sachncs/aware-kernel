@@ -29,8 +29,6 @@ The loop itself holds only configuration and lightweight references to
 subsystem instances (solver, optimizer, budget accountant).
 """
 
-from typing import List, Optional
-
 import numpy as np
 
 from aware_kernel.aware.config import TrainingConfig
@@ -42,9 +40,6 @@ from aware_kernel.fusion.builder import FusedFeatureBuilder
 from aware_kernel.global_basis.nystrom import NystromGlobalBasis
 from aware_kernel.inference.predictor import Predictor
 from aware_kernel.local_corrective.sparse_features import build_local_features
-from aware_kernel.memory.base import BaseMemoryAccumulator
-from aware_kernel.memory.cached import CachedMemoryAccumulator
-from aware_kernel.memory.streamed import StreamedMemoryAccumulator
 from aware_kernel.refresh.budget import BudgetAccountant
 from aware_kernel.refresh.controller import should_refresh, transition_state
 from aware_kernel.refresh.drift import compute_drift
@@ -74,7 +69,7 @@ class TrainingLoop:
     def __init__(
         self,
         config: TrainingConfig,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: list[Callback] | None = None,
     ) -> None:
         """Initialize training loop.
 
@@ -94,11 +89,14 @@ class TrainingLoop:
             lr=config.lr,
             lambda_r=config.lambda_r,
             lambda_orth=config.lambda_orth,
-            gamma_div=0.0 if config.ablation.disable_diversity_penalty else config.gamma_div,
+            gamma_div=0.0
+            if config.ablation.disable_diversity_penalty
+            else config.gamma_div,
             fd_epsilon=config.fd_epsilon,
         )
         self.budget = BudgetAccountant(total_budget=config.total_refresh_budget)
         self.refresh_count = 0
+        self.R_ref: Array | None = None
 
     def initialize_state(
         self,
@@ -216,20 +214,21 @@ class TrainingLoop:
         # Compute drift against the reference R from the last refresh.
         # If no refresh has occurred yet, approximate drift as a small
         # value proportional to the step count.
-        reference_R = state.continuous.R
-        if hasattr(self, "R_ref"):
+        if self.R_ref is not None and state.continuous.R is not None:
             drift = compute_drift(state.continuous.R, self.R_ref)
         else:
             drift = 0.001 * state.step
 
         # Adjust controller config for ablations.
-        effective_t_cool = 0 if self.config.ablation.disable_cooldown else self.config.refresh.t_cool
-        effective_b_t = 1 if self.config.ablation.disable_hysteresis else state.discrete.b_t
+        effective_t_cool = (
+            0 if self.config.ablation.disable_cooldown else self.config.refresh.t_cool
+        )
+        effective_b_t = (
+            1 if self.config.ablation.disable_hysteresis else state.discrete.b_t
+        )
 
         trigger = should_refresh(
-            state=state.copy_with(
-                discrete=state.discrete.copy_with(b_t=effective_b_t)
-            ),
+            state=state.copy_with(discrete=state.discrete.copy_with(b_t=effective_b_t)),
             drift=drift,
             val_gain=val_gain,
             refresh_cost=self.config.refresh_cost,
@@ -238,8 +237,14 @@ class TrainingLoop:
 
         if trigger and self.budget.remaining >= self.config.refresh_cost:
             # Execute full refresh pipeline on validation data.
-            embedder = state.continuous.theta.get("embedder") if state.continuous.theta else None
+            embedder = (
+                state.continuous.theta.get("embedder")
+                if state.continuous.theta
+                else None
+            )
             if embedder is None:
+                return state
+            if state.continuous.R is None:
                 return state
             embeddings = embedder.embed(X_val)
             projector = Projector(state.continuous.R)
@@ -266,6 +271,8 @@ class TrainingLoop:
             # Record cost and update reference R for drift computation.
             self.budget.record_refresh(self.config.refresh_cost)
             self.refresh_count += 1
+            if state.continuous.R is None:
+                return state
             self.R_ref = state.continuous.R.copy()
 
             for cb in self.callbacks:
@@ -331,7 +338,7 @@ class TrainingLoop:
         state: FullState,
         X: Array,
         y: Array,
-    ) -> dict:
+    ) -> dict[str, float]:
         """Evaluate current model on data.
 
         Computes the RMSE of the current predictor on the given data.
@@ -347,8 +354,13 @@ class TrainingLoop:
         if state.w is None:
             return {"rmse": float("inf")}
 
-        embedder = state.continuous.theta.get("embedder") if state.continuous.theta else None
+        embedder = (
+            state.continuous.theta.get("embedder") if state.continuous.theta else None
+        )
         if embedder is None:
+            return {"rmse": float("inf")}
+
+        if state.continuous.R is None:
             return {"rmse": float("inf")}
 
         embeddings = embedder.embed(X)

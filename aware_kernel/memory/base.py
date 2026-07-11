@@ -20,6 +20,7 @@ seed.
 """
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 
@@ -38,7 +39,11 @@ class BaseMemoryAccumulator(ABC):
         dtype: Numeric dtype for accumulations.
     """
 
-    def __init__(self, feature_dim: int, dtype: np.dtype = np.float64) -> None:
+    def __init__(
+        self,
+        feature_dim: int,
+        dtype: type[np.floating[Any]] = np.float64,
+    ) -> None:
         """Initialize accumulator.
 
         Args:

@@ -86,10 +86,7 @@ def should_refresh(
 
     # Condition 5: Validation gain exceeds budget-scaled cost.
     # Ensures the refresh is economically justified.
-    if val_gain <= config.gamma_cost * refresh_cost:
-        return False
-
-    return True
+    return not val_gain <= config.gamma_cost * refresh_cost
 
 
 def transition_state(state: FullState, refreshed: bool) -> FullState:

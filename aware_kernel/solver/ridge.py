@@ -35,7 +35,6 @@ from typing import Literal
 
 import numpy as np
 
-from aware_kernel.aware.exceptions import ConditioningError
 from aware_kernel.aware.types import Array
 from aware_kernel.solver.normal_eq import build_normal_equations
 from aware_kernel.solver.preconditioner import diagonal_preconditioner

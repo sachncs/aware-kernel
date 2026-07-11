@@ -51,7 +51,8 @@ def normalize_embeddings(
         Normalized embeddings with same shape as input.
     """
     norms = np.linalg.norm(embeddings, axis=axis, keepdims=True)
-    return embeddings / (norms + delta)
+    result: Array = embeddings / (norms + delta)
+    return result
 
 
 def project_embeddings(

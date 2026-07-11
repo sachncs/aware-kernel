@@ -26,8 +26,6 @@ dictionary under the key ``"embedder"``.  This opaque storage avoids
 coupling the state container to any specific embedder implementation.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from aware_kernel.aware.types import Array
@@ -62,7 +60,7 @@ class DenseEmbedder:
         self,
         input_dim: int,
         output_dim: int,
-        rng: Optional[np.random.Generator] = None,
+        rng: np.random.Generator | None = None,
     ) -> None:
         """Initialize embedder with random weights.
 
@@ -127,5 +125,7 @@ class DenseEmbedder:
             Embedded array of shape ``(n, output_dim)`` or ``(output_dim,)``.
         """
         if x.ndim == 1:
-            return x @ self.theta + self.bias
-        return x @ self.theta + self.bias
+            result_1d: Array = x @ self.theta + self.bias
+            return result_1d
+        result_2d: Array = x @ self.theta + self.bias
+        return result_2d

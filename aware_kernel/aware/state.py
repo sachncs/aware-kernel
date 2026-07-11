@@ -30,9 +30,7 @@ new instance, so concurrent readers never observe partial writes.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
-
-import numpy as np
+from typing import Any
 
 from aware_kernel.aware.types import Array
 
@@ -56,10 +54,10 @@ class ContinuousState:
             after L2-normalization: ``u = R * normalize(e)``.
     """
 
-    theta: Optional[dict] = None
-    R: Optional[Array] = None
+    theta: dict[Any, Any] | None = None
+    R: Array | None = None
 
-    def copy_with(self, **kwargs) -> "ContinuousState":
+    def copy_with(self, **kwargs: Any) -> "ContinuousState":
         """Return a new ContinuousState with the specified fields overridden.
 
         Args:
@@ -68,7 +66,7 @@ class ContinuousState:
         Returns:
             A new ``ContinuousState`` with updated values.
         """
-        current = {
+        current: dict[str, Any] = {
             "theta": self.theta,
             "R": self.R,
         }
@@ -115,17 +113,17 @@ class DiscreteState:
             bar_phi_g, sqrt(1-rho) * bar_phi_l_perp]``.
     """
 
-    Z: Optional[Array] = None
-    A: Optional[Array] = None
-    M_g: Optional[Array] = None
+    Z: Array | None = None
+    A: Array | None = None
+    M_g: Array | None = None
     c_g: float = 1.0
     c_l: float = 1.0
-    d: Optional[Array] = None
+    d: Array | None = None
     t_r: int = 0
     b_t: int = 1
     rho: float = 0.5
 
-    def copy_with(self, **kwargs) -> "DiscreteState":
+    def copy_with(self, **kwargs: Any) -> "DiscreteState":
         """Return a new DiscreteState with the specified fields overridden.
 
         Args:
@@ -134,7 +132,7 @@ class DiscreteState:
         Returns:
             A new ``DiscreteState`` with updated values.
         """
-        current = {
+        current: dict[str, Any] = {
             "Z": self.Z,
             "A": self.A,
             "M_g": self.M_g,
@@ -169,9 +167,9 @@ class FullState:
     continuous: ContinuousState = field(default_factory=ContinuousState)
     discrete: DiscreteState = field(default_factory=DiscreteState)
     step: int = 0
-    w: Optional[Array] = None
+    w: Array | None = None
 
-    def copy_with(self, **kwargs) -> "FullState":
+    def copy_with(self, **kwargs: Any) -> "FullState":
         """Return a new FullState with the specified fields overridden.
 
         Args:
@@ -180,7 +178,7 @@ class FullState:
         Returns:
             A new ``FullState`` with updated values.
         """
-        current = {
+        current: dict[str, Any] = {
             "continuous": self.continuous,
             "discrete": self.discrete,
             "step": self.step,

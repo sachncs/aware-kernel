@@ -64,7 +64,8 @@ def compute_residuals(
     s_g = phi_g.T @ phi_g + lambda_reg * np.eye(phi_g.shape[1])
     b_g = phi_g.T @ y
     w_g = np.linalg.solve(s_g, b_g)
-    return y - phi_g @ w_g
+    result: Array = y - phi_g @ w_g
+    return result
 
 
 def compute_coverage_weights(s: Array) -> Array:
@@ -85,8 +86,10 @@ def compute_coverage_weights(s: Array) -> Array:
     total = np.sum(l_i)
     if total == 0.0:
         # Uniform fallback when all activations are zero
-        return np.ones(s.shape[0]) / s.shape[0]
-    return l_i / total
+        fallback: Array = np.ones(s.shape[0]) / s.shape[0]
+        return fallback
+    result: Array = l_i / total
+    return result
 
 
 def compute_residual_weights(r: Array) -> Array:
@@ -106,8 +109,10 @@ def compute_residual_weights(r: Array) -> Array:
     total = np.sum(r_sq)
     if total == 0.0:
         # Uniform fallback when all residuals are zero (perfect fit)
-        return np.ones(r.shape[0]) / r.shape[0]
-    return r_sq / total
+        fallback: Array = np.ones(r.shape[0]) / r.shape[0]
+        return fallback
+    result: Array = r_sq / total
+    return result
 
 
 def residual_aware_sample(
@@ -149,10 +154,8 @@ def residual_aware_sample(
     # Ensure valid probability distribution (non-negative, sums to 1)
     p = np.maximum(p, 0.0)
     total_p = np.sum(p)
-    if total_p <= 0.0:
-        p = np.ones(n) / n
-    else:
-        p = p / total_p
+    p = np.ones(n) / n if total_p <= 0.0 else p / total_p
 
     indices = rng.choice(n, size=m_l, replace=False, p=p)
-    return embeddings[indices]
+    result: Array = embeddings[indices]
+    return result

@@ -19,7 +19,7 @@ flags (``disable_refresh``, ``disable_hysteresis``, etc.) allow controlled
 ablation experiments from the public API without modifying internal config.
 """
 
-from typing import Optional
+from typing import Any
 
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -35,7 +35,7 @@ from aware_kernel.training.callbacks import Callback, LoggingCallback
 from aware_kernel.training.loop import TrainingLoop
 
 
-class AwareKernelEstimator(BaseEstimator, RegressorMixin):
+class AwareKernelEstimator(BaseEstimator, RegressorMixin):  # type: ignore[misc]
     """Sklearn-compatible estimator for refresh-aware hybrid kernel learning.
 
     This estimator implements a complete fit/predict interface backed by the
@@ -72,7 +72,7 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
         memory_mode: str = "cached",
         max_steps: int = 1000,
         eval_freq: int = 10,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         delta_hi: float = 0.1,
         t_cool: int = 50,
         t_warmup: int = 10,
@@ -216,9 +216,9 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
 
     def fit(
         self,
-        X: np.ndarray,
-        y: np.ndarray,
-        callbacks: Optional[list[Callback]] = None,
+        X: np.ndarray[Any, Any],
+        y: np.ndarray[Any, Any],
+        callbacks: list[Callback] | None = None,
     ) -> "AwareKernelEstimator":
         """Fit the aware-kernel model.
 
@@ -269,7 +269,7 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
         self.coef_ = state.w
         return self
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray[Any, Any]) -> np.ndarray[Any, Any]:
         """Predict on new data.
 
         Reconstructs the full feature pipeline (embed → project → fuse)
@@ -287,23 +287,31 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
         check_is_fitted(self, attributes=["state_", "config_"])
         X = check_array(X, accept_sparse=False, dtype=np.float64)
         loop = TrainingLoop(self.config_)
-        metrics = loop.evaluate(self.state_, X, np.zeros(X.shape[0]))
+        loop.evaluate(self.state_, X, np.zeros(X.shape[0]))
         # evaluate returns dict; we need actual predictions. Use the loop's
         # internal build logic manually since evaluate doesn't expose preds.
-        embedder = self.state_.continuous.theta.get("embedder") if self.state_.continuous.theta else None
+        embedder = (
+            self.state_.continuous.theta.get("embedder")
+            if self.state_.continuous.theta
+            else None
+        )
         if embedder is None:
             raise RuntimeError("Embedder not found in fitted state")
         from aware_kernel.embedding.projector import Projector
         from aware_kernel.inference.predictor import Predictor
 
         embeddings = embedder.embed(X)
+        if self.state_.continuous.R is None:
+            raise RuntimeError("Projection matrix R not found in fitted state")
         projector = Projector(self.state_.continuous.R)
         U = projector.transform(embeddings)
         phi = loop._build_fused_features(U, self.state_.discrete)
+        if self.state_.w is None:
+            raise RuntimeError("Ridge coefficients w not found in fitted state")
         predictor = Predictor(w=self.state_.w)
-        return predictor.predict(phi)
+        return np.asarray(predictor.predict(phi))
 
-    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+    def score(self, X: np.ndarray[Any, Any], y: np.ndarray[Any, Any]) -> float:
         """Return the coefficient of determination R^2.
 
         Higher is better.  A score of 1.0 indicates perfect prediction;

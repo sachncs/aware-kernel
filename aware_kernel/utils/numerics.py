@@ -22,8 +22,6 @@ feature dimension.  Most are O(m^2) or O(m^3) depending on whether they
 involve matrix operations or elementwise operations.
 """
 
-from typing import Tuple
-
 import numpy as np
 
 from aware_kernel.aware.exceptions import ConditioningError
@@ -81,7 +79,8 @@ def soft_spectral_truncate(
     """
     safe = eigenvalues + epsilon
     scale = eigenvalues / (eigenvalues + tau)
-    return scale / np.sqrt(safe)
+    result: Array = scale / np.sqrt(safe)
+    return result
 
 
 def compute_epsilon(trace_w: float, m_g: int, alpha_epsilon: float) -> float:
@@ -108,7 +107,7 @@ def compute_epsilon(trace_w: float, m_g: int, alpha_epsilon: float) -> float:
     return alpha_epsilon * (trace_w / m_g)
 
 
-def retained_indices(eigenvalues: Array, tau: float) -> Tuple[Array, int]:
+def retained_indices(eigenvalues: Array, tau: float) -> tuple[Array, int]:
     """Determine which eigenvalues exceed the retention threshold.
 
     Eigenvalues above ``tau`` are retained; those below are discarded.

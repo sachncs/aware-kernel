@@ -23,9 +23,6 @@ because it:
 """
 
 import logging
-from typing import Any, Optional
-
-import numpy as np
 
 from aware_kernel.aware.state import FullState
 
@@ -40,7 +37,9 @@ class Callback:
     so subclasses only need to implement the hooks they care about.
     """
 
-    def on_step_end(self, step: int, state: FullState, metrics: dict) -> None:
+    def on_step_end(
+        self, step: int, state: FullState, metrics: dict[str, float]
+    ) -> None:
         """Called at the end of each training step.
 
         Args:
@@ -59,7 +58,7 @@ class Callback:
         """
         pass
 
-    def on_eval(self, step: int, metrics: dict) -> None:
+    def on_eval(self, step: int, metrics: dict[str, float]) -> None:
         """Called during evaluation.
 
         Args:
@@ -87,7 +86,9 @@ class LoggingCallback(Callback):
         """
         self.log_interval = log_interval
 
-    def on_step_end(self, step: int, state: FullState, metrics: dict) -> None:
+    def on_step_end(
+        self, step: int, state: FullState, metrics: dict[str, float]
+    ) -> None:
         """Log step metrics at intervals."""
         if step % self.log_interval == 0:
             logger.info("Step %d: %s", step, metrics)
@@ -96,7 +97,7 @@ class LoggingCallback(Callback):
         """Log refresh notification."""
         logger.info("Step %d: Refresh triggered", step)
 
-    def on_eval(self, step: int, metrics: dict) -> None:
+    def on_eval(self, step: int, metrics: dict[str, float]) -> None:
         """Log evaluation metrics."""
         logger.info("Eval at step %d: %s", step, metrics)
 
@@ -113,7 +114,9 @@ class CheckpointCallback(Callback):
         path_prefix: Prefix for checkpoint file paths.
     """
 
-    def __init__(self, save_interval: int = 100, path_prefix: str = "checkpoint") -> None:
+    def __init__(
+        self, save_interval: int = 100, path_prefix: str = "checkpoint"
+    ) -> None:
         """Initialize checkpoint callback.
 
         Args:
@@ -123,7 +126,9 @@ class CheckpointCallback(Callback):
         self.save_interval = save_interval
         self.path_prefix = path_prefix
 
-    def on_step_end(self, step: int, state: FullState, metrics: dict) -> None:
+    def on_step_end(
+        self, step: int, state: FullState, metrics: dict[str, float]
+    ) -> None:
         """Save checkpoint at intervals.
 
         Placeholder: in production, serialize state to disk.

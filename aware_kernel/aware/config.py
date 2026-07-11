@@ -30,7 +30,7 @@ ablation experiments without code duplication.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Any
 
 
 class MemoryMode(Enum):
@@ -99,9 +99,11 @@ class NumericsConfig:
 
     def __post_init__(self) -> None:
         if self.precision not in {"float32", "float64"}:
-            raise ValueError(f"precision must be float32 or float64, got {self.precision}")
+            raise ValueError(
+                f"precision must be float32 or float64, got {self.precision}"
+            )
 
-    def copy_with(self, **kwargs) -> "NumericsConfig":
+    def copy_with(self, **kwargs: Any) -> "NumericsConfig":
         """Return a new NumericsConfig with the specified fields overridden.
 
         This is the only way to modify a frozen configuration instance.
@@ -113,7 +115,7 @@ class NumericsConfig:
         Returns:
             A new ``NumericsConfig`` with updated values.
         """
-        current = {
+        current: dict[str, Any] = {
             "tau_eig": self.tau_eig,
             "alpha_epsilon": self.alpha_epsilon,
             "epsilon_c": self.epsilon_c,
@@ -171,7 +173,7 @@ class RefreshConfig:
     tau_local: float = 0.1
     k_local: int = 5
 
-    def copy_with(self, **kwargs) -> "RefreshConfig":
+    def copy_with(self, **kwargs: Any) -> "RefreshConfig":
         """Return a new RefreshConfig with the specified fields overridden.
 
         Args:
@@ -180,7 +182,7 @@ class RefreshConfig:
         Returns:
             A new ``RefreshConfig`` with updated values.
         """
-        current = {
+        current: dict[str, Any] = {
             "delta_hi": self.delta_hi,
             "t_cool": self.t_cool,
             "t_warmup": self.t_warmup,
@@ -291,7 +293,7 @@ class TrainingConfig:
     ablation: AblationConfig = field(default_factory=lambda: AblationConfig())
     max_steps: int = 1000
     eval_freq: int = 10
-    seed: Optional[int] = None
+    seed: int | None = None
     lr: float = 1e-4
     lambda_r: float = 0.0
     lambda_orth: float = 0.0

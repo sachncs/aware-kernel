@@ -17,11 +17,6 @@ This avoids recomputing them every step while ensuring they remain
 synchronized with the current basis.
 """
 
-from typing import Optional
-
-import numpy as np
-
-from aware_kernel.aware.config import NumericsConfig
 from aware_kernel.aware.types import Array
 from aware_kernel.fusion.calibration import (
     calibrate_global_features,
