@@ -15,18 +15,17 @@ from __future__ import annotations
 import argparse
 import csv
 from pathlib import Path
-from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def parse_csv(path: Path) -> List[dict]:
+def parse_csv(path: Path) -> list[dict]:
     with open(path, newline="") as f:
         return list(csv.DictReader(f))
 
 
-def plot_pareto_fronts(rows: List[dict], output_dir: Path) -> None:
+def plot_pareto_fronts(rows: list[dict], output_dir: Path) -> None:
     """Generate Pareto plots: RMSE vs Train Time and RMSE vs Peak Memory."""
     datasets = sorted({r["dataset"] for r in rows})
     tiers = sorted({r["tier"] for r in rows})
@@ -37,7 +36,7 @@ def plot_pareto_fronts(rows: List[dict], output_dir: Path) -> None:
         if len(tiers) == 1:
             axes = [axes]
 
-        for ax, tier in zip(axes, tiers):
+        for ax, tier in zip(axes, tiers, strict=False):
             subset = [r for r in rows if r["dataset"] == dataset and r["tier"] == tier]
             models = sorted({r["model"] for r in subset})
             for idx, model in enumerate(models):
@@ -45,10 +44,8 @@ def plot_pareto_fronts(rows: List[dict], output_dir: Path) -> None:
                 # Parse mean ± std strings
                 rmse_parts = model_rows[0]["rmse"].split("±")
                 time_parts = model_rows[0]["train_time_sec"].split("±")
-                mem_parts = model_rows[0]["peak_mem_mb"].split("±")
                 rmse_m = float(rmse_parts[0].strip())
                 time_m = float(time_parts[0].strip())
-                mem_m = float(mem_parts[0].strip())
                 ax.scatter(time_m, rmse_m, label=model, color=colors[idx % 12], s=80)
                 ax.annotate(model, (time_m, rmse_m), fontsize=6, alpha=0.7)
 
@@ -64,13 +61,18 @@ def plot_pareto_fronts(rows: List[dict], output_dir: Path) -> None:
         print(f"Saved {out_path}")
 
 
-def plot_ablation_bars(rows: List[dict], output_dir: Path) -> None:
+def plot_ablation_bars(rows: list[dict], output_dir: Path) -> None:
     """Bar plot of RMSE for each ablation relative to full AwareKernel."""
     datasets = sorted({r["dataset"] for r in rows})
     tiers = sorted({r["tier"] for r in rows})
     ablation_names = [
-        "AK-NoRefresh", "AK-NoHysteresis", "AK-NoCooldown",
-        "AK-NoResidAnchors", "AK-NoOrthog", "AK-NoDivPenalty", "AK-StaticScaling",
+        "AK-NoRefresh",
+        "AK-NoHysteresis",
+        "AK-NoCooldown",
+        "AK-NoResidAnchors",
+        "AK-NoOrthog",
+        "AK-NoDivPenalty",
+        "AK-StaticScaling",
     ]
 
     for dataset in datasets:
@@ -94,7 +96,11 @@ def plot_ablation_bars(rows: List[dict], output_dir: Path) -> None:
                 continue
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            bars = ax.bar(range(len(names)), rel_rmses, color=["red" if v > 0 else "green" for v in rel_rmses])
+            ax.bar(
+                range(len(names)),
+                rel_rmses,
+                color=["red" if v > 0 else "green" for v in rel_rmses],
+            )
             ax.set_xticks(range(len(names)))
             ax.set_xticklabels(names, rotation=30, ha="right", fontsize=8)
             ax.axhline(0, color="black", linewidth=0.5)
@@ -107,7 +113,7 @@ def plot_ablation_bars(rows: List[dict], output_dir: Path) -> None:
             print(f"Saved {out_path}")
 
 
-def export_latex_table(rows: List[dict], output_dir: Path) -> None:
+def export_latex_table(rows: list[dict], output_dir: Path) -> None:
     """Export a LaTeX table of main results ( AwareKernel + baselines only, no ablations)."""
     datasets = sorted({r["dataset"] for r in rows})
     tiers = sorted({r["tier"] for r in rows})
@@ -125,7 +131,16 @@ def export_latex_table(rows: List[dict], output_dir: Path) -> None:
     for dataset in datasets:
         for tier in tiers:
             for model in models:
-                row = next((r for r in rows if r["dataset"] == dataset and r["tier"] == tier and r["model"] == model), None)
+                row = next(
+                    (
+                        r
+                        for r in rows
+                        if r["dataset"] == dataset
+                        and r["tier"] == tier
+                        and r["model"] == model
+                    ),
+                    None,
+                )
                 if row:
                     lines.append(
                         f"{dataset} & {tier} & {model} & "
@@ -145,8 +160,12 @@ def export_latex_table(rows: List[dict], output_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze evaluation results.")
-    parser.add_argument("--results", type=str, required=True, help="Path to results CSV.")
-    parser.add_argument("--output_dir", type=str, default="results", help="Output directory for plots.")
+    parser.add_argument(
+        "--results", type=str, required=True, help="Path to results CSV."
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="results", help="Output directory for plots."
+    )
     args = parser.parse_args()
 
     results_path = Path(args.results)

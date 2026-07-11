@@ -19,29 +19,34 @@ from __future__ import annotations
 
 import argparse
 import csv
-import os
+import sys
 import time
 import tracemalloc
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-
-import sys
 
 # Add repo root and eval_real_world to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from data_loaders.loaders import DATASET_LOADERS
+
 from aware_kernel import AwareKernelEstimator
-from aware_kernel.aware.config import AblationConfig, MemoryMode, RefreshConfig, TrainingConfig
-from aware_kernel.evaluation.baselines import NystromRidgeBaseline, RandomFeatureBaseline, RidgeBaseline
+from aware_kernel.aware.config import (
+    AblationConfig,
+    MemoryMode,
+)
+from aware_kernel.evaluation.baselines import (
+    NystromRidgeBaseline,
+    RandomFeatureBaseline,
+    RidgeBaseline,
+)
 from aware_kernel.evaluation.metrics import compute_all_metrics
 from aware_kernel.training.loop import TrainingLoop
-
-from data_loaders.loaders import DATASET_LOADERS
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +55,7 @@ from data_loaders.loaders import DATASET_LOADERS
 @dataclass
 class BudgetTier:
     """Preset budget tier for evaluation."""
+
     name: str
     m_g: int
     m_l: int
@@ -78,7 +84,7 @@ def preprocess_and_split(
     y: np.ndarray,
     rng: np.random.Generator,
     standardize: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Return train/val/test with optional standard scaling."""
     n = X.shape[0]
     perm = rng.permutation(n)
@@ -124,9 +130,9 @@ class ExperimentResult:
     dataset: str
     model: str
     tier: str
-    runs: List[SingleRunResult] = field(default_factory=list)
+    runs: list[SingleRunResult] = field(default_factory=list)
 
-    def mean_std(self, attr: str) -> Tuple[float, float]:
+    def mean_std(self, attr: str) -> tuple[float, float]:
         vals = [getattr(r, attr) for r in self.runs]
         return float(np.mean(vals)), float(np.std(vals))
 
@@ -152,31 +158,55 @@ class ExperimentResult:
 # ---------------------------------------------------------------------------
 # Model factories
 # ---------------------------------------------------------------------------
-def make_aware_kernel(tier: BudgetTier, lambda_reg: float, seed: int, ablation: Optional[AblationConfig] = None) -> AwareKernelEstimator:
+def make_aware_kernel(
+    tier: BudgetTier,
+    lambda_reg: float,
+    seed: int,
+    ablation: AblationConfig | None = None,
+) -> AwareKernelEstimator:
     return AwareKernelEstimator(
-        embedding_dim=tier.embedding_dim, m_g=tier.m_g, m_l=tier.m_l,
-        lambda_reg=lambda_reg, memory_mode=tier.memory_mode.value,
-        max_steps=tier.max_steps, eval_freq=max(1, tier.max_steps // 20),
-        seed=seed, total_refresh_budget=tier.total_refresh_budget,
-        refresh_cost=tier.refresh_cost, lr=1e-4, lambda_r=1e-4,
-        lambda_orth=1e-4, gamma_div=1e-3, fd_epsilon=1e-5,
+        embedding_dim=tier.embedding_dim,
+        m_g=tier.m_g,
+        m_l=tier.m_l,
+        lambda_reg=lambda_reg,
+        memory_mode=tier.memory_mode.value,
+        max_steps=tier.max_steps,
+        eval_freq=max(1, tier.max_steps // 20),
+        seed=seed,
+        total_refresh_budget=tier.total_refresh_budget,
+        refresh_cost=tier.refresh_cost,
+        lr=1e-4,
+        lambda_r=1e-4,
+        lambda_orth=1e-4,
+        gamma_div=1e-3,
+        fd_epsilon=1e-5,
         disable_refresh=ablation.disable_refresh if ablation else False,
         disable_hysteresis=ablation.disable_hysteresis if ablation else False,
         disable_cooldown=ablation.disable_cooldown if ablation else False,
-        disable_residual_aware_anchors=ablation.disable_residual_aware_anchors if ablation else False,
-        disable_orthogonalization=ablation.disable_orthogonalization if ablation else False,
-        disable_diversity_penalty=ablation.disable_diversity_penalty if ablation else False,
+        disable_residual_aware_anchors=ablation.disable_residual_aware_anchors
+        if ablation
+        else False,
+        disable_orthogonalization=ablation.disable_orthogonalization
+        if ablation
+        else False,
+        disable_diversity_penalty=ablation.disable_diversity_penalty
+        if ablation
+        else False,
         static_scaling=ablation.static_scaling if ablation else False,
     )
 
 
-def make_nystrom(tier: BudgetTier, lambda_reg: float, seed: int) -> NystromRidgeBaseline:
+def make_nystrom(
+    tier: BudgetTier, lambda_reg: float, seed: int
+) -> NystromRidgeBaseline:
     return NystromRidgeBaseline(m_g=tier.m_g, lambda_reg=lambda_reg, seed=seed)
 
 
 def make_rff(tier: BudgetTier, lambda_reg: float, seed: int) -> RandomFeatureBaseline:
     n_features = min(2000, max(tier.m_g, 512))
-    return RandomFeatureBaseline(n_features=n_features, gamma=1.0, lambda_reg=lambda_reg, seed=seed)
+    return RandomFeatureBaseline(
+        n_features=n_features, gamma=1.0, lambda_reg=lambda_reg, seed=seed
+    )
 
 
 def make_ridge(lambda_reg: float) -> RidgeBaseline:
@@ -188,9 +218,11 @@ def make_ridge(lambda_reg: float) -> RidgeBaseline:
 # ---------------------------------------------------------------------------
 def tune_lambda_reg(
     factory: Callable[[float], object],
-    X_train: np.ndarray, y_train: np.ndarray,
-    X_val: np.ndarray, y_val: np.ndarray,
-    lambdas: Optional[List[float]] = None,
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    lambdas: list[float] | None = None,
 ) -> float:
     if lambdas is None:
         lambdas = [1e-4, 1e-3, 1e-2, 1e-1, 1.0]
@@ -210,15 +242,22 @@ def tune_lambda_reg(
 # ---------------------------------------------------------------------------
 # Condition proxy
 # ---------------------------------------------------------------------------
-def compute_condition_proxy(estimator: AwareKernelEstimator, X: np.ndarray, lambda_reg: float) -> float:
+def compute_condition_proxy(
+    estimator: AwareKernelEstimator, X: np.ndarray, lambda_reg: float
+) -> float:
     if estimator.state_ is None or estimator.state_.w is None:
         return float("inf")
     loop = TrainingLoop(estimator.config_)
-    embedder = estimator.state_.continuous.theta.get("embedder") if estimator.state_.continuous.theta else None
+    embedder = (
+        estimator.state_.continuous.theta.get("embedder")
+        if estimator.state_.continuous.theta
+        else None
+    )
     if embedder is None:
         return float("inf")
     embeddings = embedder.embed(X)
     from aware_kernel.embedding.projector import Projector
+
     projector = Projector(estimator.state_.continuous.R)
     U = projector.transform(embeddings)
     phi = loop._build_fused_features(U, estimator.state_.discrete)
@@ -233,7 +272,9 @@ def compute_condition_proxy(estimator: AwareKernelEstimator, X: np.ndarray, lamb
 # ---------------------------------------------------------------------------
 # Execution helpers
 # ---------------------------------------------------------------------------
-def run_single_aware_kernel(model: AwareKernelEstimator, X_train, y_train, X_test, y_test) -> SingleRunResult:
+def run_single_aware_kernel(
+    model: AwareKernelEstimator, X_train, y_train, X_test, y_test
+) -> SingleRunResult:
     tracemalloc.start()
     t0 = time.perf_counter()
     model.fit(X_train, y_train)
@@ -250,9 +291,13 @@ def run_single_aware_kernel(model: AwareKernelEstimator, X_train, y_train, X_tes
     refresh_count = 1 if model.state_ and model.state_.discrete.t_r > 0 else 0
 
     return SingleRunResult(
-        rmse=metrics["rmse"], mae=metrics["mae"], r2=metrics["r2"],
-        train_time_sec=train_time, predict_time_sec=predict_time,
-        peak_mem_mb=peak / (1024 * 1024), refresh_count=refresh_count,
+        rmse=metrics["rmse"],
+        mae=metrics["mae"],
+        r2=metrics["r2"],
+        train_time_sec=train_time,
+        predict_time_sec=predict_time,
+        peak_mem_mb=peak / (1024 * 1024),
+        refresh_count=refresh_count,
         condition_proxy=cond,
     )
 
@@ -271,9 +316,14 @@ def run_single_baseline(model, X_train, y_train, X_test, y_test) -> SingleRunRes
 
     metrics = compute_all_metrics(y_test, y_pred)
     return SingleRunResult(
-        rmse=metrics["rmse"], mae=metrics["mae"], r2=metrics["r2"],
-        train_time_sec=train_time, predict_time_sec=predict_time,
-        peak_mem_mb=peak / (1024 * 1024), refresh_count=0, condition_proxy=float("nan"),
+        rmse=metrics["rmse"],
+        mae=metrics["mae"],
+        r2=metrics["r2"],
+        train_time_sec=train_time,
+        predict_time_sec=predict_time,
+        peak_mem_mb=peak / (1024 * 1024),
+        refresh_count=0,
+        condition_proxy=float("nan"),
     )
 
 
@@ -285,17 +335,24 @@ def run_experiment_suite(
     X: np.ndarray,
     y: np.ndarray,
     tier: BudgetTier,
-    seeds: List[int],
+    seeds: list[int],
     run_ablations: bool = True,
-) -> List[ExperimentResult]:
-    results: List[ExperimentResult] = []
+) -> list[ExperimentResult]:
+    results: list[ExperimentResult] = []
 
     # AwareKernel full
     exp = ExperimentResult(dataset=dataset_name, model="AwareKernel", tier=tier.name)
     for seed in seeds:
         rng = np.random.default_rng(seed)
         X_tr, X_val, X_te, y_tr, y_val, y_te = preprocess_and_split(X, y, rng)
-        best_lam = tune_lambda_reg(lambda lam: make_aware_kernel(tier, lam, seed), X_tr, y_tr, X_val, y_val, lambdas=[1e-4, 1e-3, 1e-2, 1e-1])
+        best_lam = tune_lambda_reg(
+            lambda lam, _seed=seed: make_aware_kernel(tier, lam, _seed),
+            X_tr,
+            y_tr,
+            X_val,
+            y_val,
+            lambdas=[1e-4, 1e-3, 1e-2, 1e-1],
+        )
         model = make_aware_kernel(tier, best_lam, seed)
         exp.runs.append(run_single_aware_kernel(model, X_tr, y_tr, X_te, y_te))
     results.append(exp)
@@ -311,7 +368,14 @@ def run_experiment_suite(
         for seed in seeds:
             rng = np.random.default_rng(seed)
             X_tr, X_val, X_te, y_tr, y_val, y_te = preprocess_and_split(X, y, rng)
-            best_lam = tune_lambda_reg(lambda lam: factory(lam, seed), X_tr, y_tr, X_val, y_val, lambdas=[1e-4, 1e-3, 1e-2, 1e-1, 1.0])
+            best_lam = tune_lambda_reg(
+                lambda lam, _seed=seed, _factory=factory: _factory(lam, _seed),
+                X_tr,
+                y_tr,
+                X_val,
+                y_val,
+                lambdas=[1e-4, 1e-3, 1e-2, 1e-1, 1.0],
+            )
             model = factory(best_lam, seed)
             exp.runs.append(run_single_baseline(model, X_tr, y_tr, X_te, y_te))
         results.append(exp)
@@ -332,7 +396,16 @@ def run_experiment_suite(
             for seed in seeds:
                 rng = np.random.default_rng(seed)
                 X_tr, X_val, X_te, y_tr, y_val, y_te = preprocess_and_split(X, y, rng)
-                best_lam = tune_lambda_reg(lambda lam: make_aware_kernel(tier, lam, seed, ablation=abcfg), X_tr, y_tr, X_val, y_val, lambdas=[1e-4, 1e-3, 1e-2, 1e-1])
+                best_lam = tune_lambda_reg(
+                    lambda lam, _seed=seed, _abcfg=abcfg: make_aware_kernel(
+                        tier, lam, _seed, ablation=_abcfg
+                    ),
+                    X_tr,
+                    y_tr,
+                    X_val,
+                    y_val,
+                    lambdas=[1e-4, 1e-3, 1e-2, 1e-1],
+                )
                 model = make_aware_kernel(tier, best_lam, seed, ablation=abcfg)
                 exp.runs.append(run_single_aware_kernel(model, X_tr, y_tr, X_te, y_te))
             results.append(exp)
@@ -343,25 +416,29 @@ def run_experiment_suite(
 # ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
-def results_to_markdown(results: List[ExperimentResult]) -> str:
+def results_to_markdown(results: list[ExperimentResult]) -> str:
     lines = [
         "| Dataset | Model | Tier | RMSE | MAE | R^2 | Train(s) | PeakMem(MB) | Refresh | Cond(kappa) |",
         "|---------|-------|------|------|-----|-----|----------|-------------|---------|-------------|",
     ]
     for exp in results:
         d = exp.to_dict()
-        lines.append(f"| {d['dataset']} | {d['model']} | {d['tier']} | {d['rmse']} | {d['mae']} | {d['r2']} | {d['train_time_sec']} | {d['peak_mem_mb']} | {d['refresh_count']} | {d['condition_proxy']} |")
+        lines.append(
+            f"| {d['dataset']} | {d['model']} | {d['tier']} | {d['rmse']} | {d['mae']} | {d['r2']} | {d['train_time_sec']} | {d['peak_mem_mb']} | {d['refresh_count']} | {d['condition_proxy']} |"
+        )
     return "\n".join(lines)
 
 
-def stability_to_markdown(results: List[ExperimentResult]) -> str:
+def stability_to_markdown(results: list[ExperimentResult]) -> str:
     lines = [
         "| Dataset | Model | Tier | Var(RMSE) | Var(Time) | Var(Cond) |",
         "|---------|-------|------|-----------|-----------|-----------|",
     ]
     for exp in results:
         d = exp.to_dict()
-        lines.append(f"| {d['dataset']} | {d['model']} | {d['tier']} | {d['stability_rmse_var']:.6e} | {d['stability_time_var']:.6e} | {d['stability_cond_var']:.6e} |")
+        lines.append(
+            f"| {d['dataset']} | {d['model']} | {d['tier']} | {d['stability_rmse_var']:.6e} | {d['stability_time_var']:.6e} | {d['stability_cond_var']:.6e} |"
+        )
     return "\n".join(lines)
 
 
@@ -370,19 +447,34 @@ def stability_to_markdown(results: List[ExperimentResult]) -> str:
 # ---------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run aware-kernel evaluation suite.")
-    parser.add_argument("--datasets", nargs="+", default=["Diabetes"], help="Dataset names or 'all'.")
-    parser.add_argument("--tiers", nargs="+", default=["Small"], help="Budget tier names or 'all'.")
-    parser.add_argument("--n_seeds", type=int, default=5, help="Number of random seeds.")
-    parser.add_argument("--output_dir", type=str, default="results", help="Output directory.")
-    parser.add_argument("--no_ablations", action="store_true", help="Skip ablation runs.")
+    parser.add_argument(
+        "--datasets", nargs="+", default=["Diabetes"], help="Dataset names or 'all'."
+    )
+    parser.add_argument(
+        "--tiers", nargs="+", default=["Small"], help="Budget tier names or 'all'."
+    )
+    parser.add_argument(
+        "--n_seeds", type=int, default=5, help="Number of random seeds."
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="results", help="Output directory."
+    )
+    parser.add_argument(
+        "--no_ablations", action="store_true", help="Skip ablation runs."
+    )
     args = parser.parse_args()
 
-    datasets = list(DATASET_LOADERS.keys()) if args.datasets == ["all"] else args.datasets
-    tiers = [TIER_MAP[t] for t in (["Small", "Medium", "Large"] if args.tiers == ["all"] else args.tiers)]
+    datasets = (
+        list(DATASET_LOADERS.keys()) if args.datasets == ["all"] else args.datasets
+    )
+    tiers = [
+        TIER_MAP[t]
+        for t in (["Small", "Medium", "Large"] if args.tiers == ["all"] else args.tiers)
+    ]
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    all_results: List[ExperimentResult] = []
+    all_results: list[ExperimentResult] = []
 
     for dataset_name in datasets:
         if dataset_name not in DATASET_LOADERS:
@@ -396,11 +488,15 @@ def main() -> None:
         for tier in tiers:
             print(f"\n  -- Tier: {tier.name} --")
             seeds = [42 + i for i in range(args.n_seeds)]
-            tier_results = run_experiment_suite(dataset_name, X, y, tier, seeds, run_ablations=not args.no_ablations)
+            tier_results = run_experiment_suite(
+                dataset_name, X, y, tier, seeds, run_ablations=not args.no_ablations
+            )
             all_results.extend(tier_results)
             for exp in tier_results:
                 rmse_m, rmse_s = exp.mean_std("rmse")
-                print(f"    {exp.model:22s} RMSE={rmse_m:.4f}±{rmse_s:.4f}  time={exp.mean_std('train_time_sec')[0]:.2f}s")
+                print(
+                    f"    {exp.model:22s} RMSE={rmse_m:.4f}±{rmse_s:.4f}  time={exp.mean_std('train_time_sec')[0]:.2f}s"
+                )
 
     # Write outputs
     md_path = output_dir / "results.md"
