@@ -1,13 +1,22 @@
 """Public API: sklearn-compatible estimator for aware-kernel.
 
-Example:
-    ```python
+This module provides ``AwareKernelEstimator``, a drop-in scikit-learn
+estimator that wraps the full aware-kernel training pipeline.  It bridges
+the library's internal ``TrainingLoop`` with the familiar ``fit``/``predict``/``score``
+interface, making aware-kernel compatible with sklearn utilities like
+``GridSearchCV``, ``Pipeline``, and ``cross_val_score``.
+
+Example::
+
     from aware_kernel import AwareKernelEstimator
 
     model = AwareKernelEstimator(embedding_dim=8, m_g=32, m_l=8, lambda_reg=1e-2)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    ```
+
+All hyperparameters map directly to ``TrainingConfig`` fields.  Ablation
+flags (``disable_refresh``, ``disable_hysteresis``, etc.) allow controlled
+ablation experiments from the public API without modifying internal config.
 """
 
 from typing import Optional
@@ -29,13 +38,29 @@ from aware_kernel.training.loop import TrainingLoop
 class AwareKernelEstimator(BaseEstimator, RegressorMixin):
     """Sklearn-compatible estimator for refresh-aware hybrid kernel learning.
 
-    Implements a complete fit/predict interface backed by the internal
-    TrainingLoop. Hyperparameters map directly to TrainingConfig fields.
+    This estimator implements a complete fit/predict interface backed by the
+    internal ``TrainingLoop``.  It separates continuous parameters (updated every
+    step via ridge regression on mini-batches) from discrete basis parameters
+    (refreshed adaptively based on drift detection).
+
+    The estimator satisfies the sklearn ``BaseEstimator`` and ``RegressorMixin``
+    interfaces, enabling use with ``GridSearchCV``, ``Pipeline``, and standard
+    cross-validation utilities.  The ``coef_`` attribute exposes the final ridge
+    solution weights for introspection.
 
     Attributes:
-        embedding_dim_: Resolved embedding dimension.
-        state_: Final FullState after fitting.
-        config_: TrainingConfig used for fitting.
+        embedding_dim_: Resolved embedding dimension after fitting.
+        state_: Final ``FullState`` containing all continuous and discrete
+            parameters after training.
+        config_: ``TrainingConfig`` constructed from hyperparameters.
+        coef_: Ridge solution weights ``w`` of shape ``(m_fused,)`` where
+            ``m_fused = m_g + 2 * m_l``.
+
+    Design notes:
+        - The estimator constructs ``TrainingConfig`` lazily in ``_build_config``
+          so that hyperparameters remain mutable until ``fit`` is called.
+        - Mini-batch size is fixed at 32 for computational efficiency on
+          moderate datasets; larger batches may be added via config in the future.
     """
 
     def __init__(
@@ -137,7 +162,15 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
         self.static_scaling = static_scaling
 
     def _build_config(self) -> TrainingConfig:
-        """Construct TrainingConfig from estimator hyperparameters."""
+        """Construct ``TrainingConfig`` from estimator hyperparameters.
+
+        Maps the flat sklearn-style hyperparameters to the nested config
+        structure used internally.  This separation keeps the public API
+        flat (sklearn convention) while the internals use structured configs.
+
+        Returns:
+            TrainingConfig with all fields populated from hyperparameters.
+        """
         mode = (
             MemoryMode.CACHED
             if self.memory_mode.lower() == "cached"
@@ -189,13 +222,22 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
     ) -> "AwareKernelEstimator":
         """Fit the aware-kernel model.
 
+        Runs the full training pipeline: embeds inputs, builds the global
+        Nystr\"om basis, constructs local corrective features, and alternates
+        between continuous ridge updates and adaptive discrete refreshes.
+
         Args:
-            X: Training inputs of shape (n_samples, n_features).
-            y: Training targets of shape (n_samples,).
-            callbacks: Optional list of training callbacks.
+            X: Training inputs of shape ``(n_samples, n_features)``.
+            y: Training targets of shape ``(n_samples,)``.
+            callbacks: Optional list of ``Callback`` instances for logging
+                or custom monitoring during training.
 
         Returns:
-            Self, the fitted estimator.
+            Self, the fitted estimator (enables method chaining).
+
+        Side effects:
+            Sets ``self.state_``, ``self.config_``, ``self.embedding_dim_``,
+            and ``self.coef_`` as fitted attributes.
         """
         X, y = check_X_y(X, y, accept_sparse=False, dtype=np.float64, y_numeric=True)
         self.config_ = self._build_config()
@@ -230,11 +272,17 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict on new data.
 
+        Reconstructs the full feature pipeline (embed → project → fuse)
+        using the fitted state, then applies the ridge solution ``w``.
+
         Args:
-            X: Inputs of shape (n_samples, n_features).
+            X: Inputs of shape ``(n_samples, n_features)``.
 
         Returns:
-            Predictions of shape (n_samples,).
+            Predictions of shape ``(n_samples,)``.
+
+        Raises:
+            RuntimeError: If the model has not been fitted yet.
         """
         check_is_fitted(self, attributes=["state_", "config_"])
         X = check_array(X, accept_sparse=False, dtype=np.float64)
@@ -258,12 +306,16 @@ class AwareKernelEstimator(BaseEstimator, RegressorMixin):
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """Return the coefficient of determination R^2.
 
+        Higher is better.  A score of 1.0 indicates perfect prediction;
+        0.0 means the model predicts the mean of ``y``; negative scores
+        indicate worse-than-mean performance.
+
         Args:
-            X: Test inputs.
-            y: True targets.
+            X: Test inputs of shape ``(n_samples, n_features)``.
+            y: True targets of shape ``(n_samples,)``.
 
         Returns:
-            R^2 score.
+            R^2 score (capped at 1.0).
         """
         from aware_kernel.evaluation.metrics import compute_r2
 

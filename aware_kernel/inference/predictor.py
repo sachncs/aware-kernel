@@ -1,8 +1,28 @@
 """Inference utilities for mean and variance prediction.
 
-Implements Section 12:
-    mu_*(x_*) = phi(x_*)^T w*
-    sigma_*^2(x_*) = phi(x_*)^T phi(x_*) - phi(x_*)^T (Phi^T Phi + lambda I)^{-1} phi(x_*)
+Implements Section 12 of the method blueprint: computing predictive
+means and variances from the learned feature representation.
+
+The predictive equations are:
+
+    ``mu_*(x_*) = phi(x_*)^T w*``
+    ``sigma_*^2(x_*) = phi(x_*)^T phi(x_*) - phi(x_*)^T (Phi^T Phi + lambda I)^{-1} phi(x_*)``
+
+The mean prediction is a simple inner product between the fused features
+and the ridge coefficients.  The variance prediction additionally
+requires the inverse normal matrix ``S^{-1}``, which captures the
+epistemic uncertainty of the ridge estimate.
+
+Design rationale
+----------------
+The variance prediction uses the standard Bayesian linear regression
+posterior variance formula.  The clamping at zero ensures non-negative
+variances despite numerical errors.
+
+The predictor is split into stateless functions (``predict_mean``,
+``predict_variance``) and a stateful wrapper (``Predictor``) for
+convenience.  The stateless functions can be used independently in
+evaluation pipelines.
 """
 
 import numpy as np
@@ -13,12 +33,15 @@ from aware_kernel.aware.types import Array
 def predict_mean(phi_query: Array, w: Array) -> float | Array:
     """Predict mean for query point(s).
 
+    Computes ``mu_*(x_*) = phi(x_*)^T w*``.
+
     Args:
-        phi_query: Fused features of shape (m,) or (n_query, m).
-        w: Ridge coefficients of shape (m,).
+        phi_query: Fused features of shape ``(m,)`` for a single query
+            or ``(n_query, m)`` for a batch.
+        w: Ridge coefficients of shape ``(m,)``.
 
     Returns:
-        Mean prediction(s).
+        Mean prediction(s): scalar for single query, array for batch.
     """
     if phi_query.ndim == 1:
         return float(phi_query @ w)
@@ -31,9 +54,18 @@ def predict_variance(
 ) -> float | Array:
     """Predict variance for query point(s).
 
+    Computes the posterior variance from Bayesian linear regression:
+
+        ``sigma^2(x_*) = phi(x_*)^T phi(x_*) - phi(x_*)^T S^{-1} phi(x_*)``
+
+    where ``S = Phi^T Phi + lambda I`` is the regularized normal matrix.
+
+    The variance is clamped at zero to handle numerical errors that
+    could produce small negative values.
+
     Args:
-        phi_query: Fused features of shape (m,) or (n_query, m).
-        s_inv: Inverse of (Phi^T Phi + lambda I) of shape (m, m).
+        phi_query: Fused features of shape ``(m,)`` or ``(n_query, m)``.
+        s_inv: Inverse of ``(Phi^T Phi + lambda I)`` of shape ``(m, m)``.
 
     Returns:
         Variance prediction(s), clamped at zero.
@@ -44,7 +76,7 @@ def predict_variance(
         var = max(self_term - correction, 0.0)
         return var
 
-    # Batch prediction
+    # Batch prediction using Einstein summation for efficiency.
     self_terms = np.sum(phi_query * phi_query, axis=1)
     corrections = np.einsum("ij,jk,ik->i", phi_query, s_inv, phi_query)
     variances = np.maximum(self_terms - corrections, 0.0)
@@ -52,61 +84,54 @@ def predict_variance(
 
 
 class Predictor:
-    """Stateful predictor for mean and variance."""
+    """Stateful predictor for mean and variance.
+
+    Wraps the ridge coefficients ``w`` and optionally the inverse normal
+    matrix ``S^{-1}`` for prediction.  The mean prediction is always
+    available; the variance prediction requires ``S^{-1}``.
+
+    Attributes:
+        w: Ridge coefficients of shape ``(m,)``.
+        s_inv: Inverse normal matrix of shape ``(m, m)`` or ``None``.
+    """
 
     def __init__(self, w: Array, s_inv: Array | None = None) -> None:
         """Initialize predictor.
 
         Args:
-            w: Ridge coefficients of shape (m,).
-            s_inv: Optional inverse normal matrix for variance.
+            w: Ridge coefficients of shape ``(m,)``.
+            s_inv: Optional inverse normal matrix of shape ``(m, m)``
+                for variance prediction.  If ``None``, only mean
+                prediction is available.
         """
-        self._w = w
-        self._s_inv = s_inv
-
-    @property
-    def w(self) -> Array:
-        """Ridge coefficients."""
-        return self._w
-
-    @w.setter
-    def w(self, value: Array) -> None:
-        """Update ridge coefficients."""
-        self._w = value
-
-    @property
-    def s_inv(self) -> Array | None:
-        """Inverse normal matrix."""
-        return self._s_inv
-
-    @s_inv.setter
-    def s_inv(self, value: Array | None) -> None:
-        """Update inverse normal matrix."""
-        self._s_inv = value
+        self.w = w
+        self.s_inv = s_inv
 
     def predict(self, phi_query: Array) -> float | Array:
         """Predict mean for query point(s).
 
         Args:
-            phi_query: Fused features.
+            phi_query: Fused features of shape ``(m,)`` or
+                ``(n_query, m)``.
 
         Returns:
             Mean prediction(s).
         """
-        return predict_mean(phi_query, self._w)
+        return predict_mean(phi_query, self.w)
 
     def predict_variance(self, phi_query: Array) -> float | Array:
         """Predict variance for query point(s).
 
         Args:
-            phi_query: Fused features.
+            phi_query: Fused features of shape ``(m,)`` or
+                ``(n_query, m)``.
 
         Returns:
             Variance prediction(s).
 
         Raises:
-            ValueError: If s_inv is not set.
+            ValueError: If ``s_inv`` has not been set.
         """
-        if self._s_inv is None:
+        if self.s_inv is None:
             raise ValueError("s_inv must be set for variance prediction")
-        return predict_variance(phi_query, self._s_inv)
+        return predict_variance(phi_query, self.s_inv)

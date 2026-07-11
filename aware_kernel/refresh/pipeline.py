@@ -1,13 +1,35 @@
 """Discrete refresh pipeline.
 
-Implements Section 3.3 (discrete refresh pipeline):
-    1. Re-select landmarks Z
-    2. Recompute W and M_g
-    3. Re-select/update anchors A
-    4. Rebuild local features and normalizers
-    5. Orthogonalize local block against global block
-    6. Recompute scaling coefficients
-    7. Freeze calibration values until next refresh
+Implements Section 3.3 of the method blueprint: the full discrete refresh
+pipeline that recomputes all discrete basis parameters.
+
+The pipeline is triggered by the refresh controller and consists of
+seven steps:
+
+1. **Landmark selection**: Re-select ``m_g`` landmarks ``Z`` via
+   k-means++ from the current projected embeddings.
+2. **Kernel and whitening**: Recompute ``W = k(Z, Z)`` and the
+   whitening map ``M_g`` via soft-truncated eigendecomposition.
+3. **Residual computation**: Fit a global-only ridge to compute
+   residuals identifying regions of poor global performance.
+4. **Anchor selection**: Re-select ``m_l`` anchors ``A`` via
+   residual-aware sampling (blending coverage and residual weights).
+5. **Local features**: Build sparse k-NN RBF features and compute
+   per-anchor normalizers.
+6. **Orthogonalization**: Project local features into the nullspace
+   of the global subspace.
+7. **Calibration**: Compute trace-based calibration scalars and
+   fusion gate.
+
+The pipeline produces a new ``DiscreteState`` that replaces the previous
+one atomically.
+
+Design rationale
+----------------
+The pipeline is intentionally modular: each step is a separate function
+call that can be tested in isolation.  This also allows ablation
+experiments to selectively disable individual steps (e.g., skipping
+orthogonalization or using pure coverage-based anchor selection).
 """
 
 from typing import Optional
@@ -35,37 +57,49 @@ def run_refresh_pipeline(
 ) -> DiscreteState:
     """Execute the full discrete refresh pipeline.
 
+    Rebuilds all discrete basis parameters from scratch using the current
+    projected embeddings and targets.  The seven steps correspond to the
+    pipeline described in Section 3.3 of the method blueprint.
+
     Args:
-        state: Current training state.
-        U_data: Projected embeddings of shape (n, d).
-        y_data: Targets of shape (n,).
-        config: Training configuration.
-        rng: Optional random generator.
+        state: Current training state (used for static-scaling check
+            and step tracking).
+        U_data: Projected embeddings of shape ``(n, d)``.
+        y_data: Targets of shape ``(n,)``.
+        config: Training configuration containing all sub-configs.
+        rng: Optional random generator for reproducibility.
 
     Returns:
-        Updated discrete state with refreshed basis.
+        New ``DiscreteState`` with refreshed basis, calibration, and
+        gate values.
     """
     if rng is None:
         rng = np.random.default_rng()
 
-    # Step 1: Re-select landmarks Z
+    # Step 1: Re-select landmarks Z via k-means++.
+    # Landmarks capture the geometry of the projected embedding space.
     Z = kmeans_pp(U_data, k=config.m_g, rng=rng)
 
-    # Step 2: Recompute W and M_g
+    # Step 2: Recompute kernel-on-landmarks matrix W and whitening map M_g.
+    # The whitening map encodes the spectral structure of the kernel.
     global_basis = NystromGlobalBasis.from_landmarks(Z, config.numerics)
 
-    # Build global features for all data
+    # Build global features for all data (needed for residual computation).
     Phi_g = global_basis.build_features(U_data)
 
-    # Step 3: Compute residuals and re-select anchors A
+    # Step 3: Compute residuals from global-only ridge fit.
+    # Residuals identify regions where the global basis is insufficient.
     residuals = compute_residuals(Phi_g, y_data, config.lambda_reg)
 
+    # Step 4: Re-select/update anchors A.
     if config.ablation.disable_residual_aware_anchors:
-        # Pure coverage-based sampling (kmeans++ only)
+        # Ablation: pure coverage-based sampling (k-means++ only).
         A = kmeans_pp(U_data, k=config.m_l, rng=rng)
     else:
-        # Build initial sparse features for coverage weights
-        # Use a simple initial anchor set for coverage computation
+        # Build initial sparse features for coverage weight computation.
+        # We need an initial anchor set to compute coverage weights,
+        # which are then blended with residual weights for the final
+        # anchor selection.
         initial_anchors = kmeans_pp(U_data, k=config.m_l, rng=rng)
         s_initial, _ = build_local_features(
             U_data,
@@ -74,6 +108,7 @@ def run_refresh_pipeline(
             k=config.refresh.k_local,
         )
 
+        # Residual-aware sampling blends coverage and residual signals.
         A = residual_aware_sample(
             embeddings=U_data,
             s=s_initial,
@@ -83,7 +118,7 @@ def run_refresh_pipeline(
             rng=rng,
         )
 
-    # Step 4: Rebuild local features and normalizers
+    # Step 5: Rebuild local features and normalizers.
     Phi_l, d = build_local_features(
         U_data,
         A,
@@ -91,16 +126,18 @@ def run_refresh_pipeline(
         k=config.refresh.k_local,
     )
 
-    # Step 5: Orthogonalize local block against global block
+    # Step 6: Orthogonalize local block against global block.
+    # This ensures local features carry only new information not
+    # captured by the global basis.
     if config.ablation.disable_orthogonalization:
         Phi_l_perp = Phi_l
     else:
         eta_o = config.numerics.eta_o
         Phi_l_perp = orthogonalize_local_features(Phi_g, Phi_l, eta_o)
 
-    # Step 6: Recompute scaling coefficients
+    # Step 7: Recompute scaling coefficients.
     if config.ablation.static_scaling and state.discrete.c_g is not None and state.discrete.c_l is not None:
-        # Freeze calibration scalars after first refresh
+        # Ablation: freeze calibration scalars after first refresh.
         fused_builder = FusedFeatureBuilder(
             c_g=state.discrete.c_g,
             c_l=state.discrete.c_l,
@@ -114,7 +151,7 @@ def run_refresh_pipeline(
             epsilon_c=config.numerics.epsilon_c,
         )
 
-    # Step 7: Build updated discrete state
+    # Assemble the new discrete state atomically.
     new_discrete = DiscreteState(
         Z=Z,
         A=A,

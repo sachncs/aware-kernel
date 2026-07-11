@@ -1,7 +1,21 @@
 """Experiment runner for comparing models on synthetic datasets.
 
-Provides a lightweight framework to evaluate aware-kernel against
-baselines with controlled random seeds and reproducible splits.
+Provides a lightweight framework to evaluate aware-kernel against baselines
+with controlled random seeds and reproducible train/test splits.
+
+The runner uses a factory pattern: models and datasets are passed as
+dictionaries of factory callables, ensuring each experiment gets a fresh
+model instance.  This prevents state leakage between experiments and
+guarantees reproducibility when a seed is provided.
+
+Typical usage::
+
+    runner = ExperimentRunner(seed=42)
+    results = runner.run_suite(
+        models={"ridge": RidgeBaseline, "aware": AwareKernelEstimator},
+        datasets={"linear": lambda rng: make_linear_regression(rng)},
+    )
+    print(format_results_table(results))
 """
 
 import time
@@ -35,7 +49,16 @@ class ExperimentResult:
 
 
 class ExperimentRunner:
-    """Run a suite of models on a suite of datasets."""
+    """Run a suite of models on a suite of datasets.
+
+    The runner manages random state centrally via a single ``np.random.Generator``
+    seeded at initialization.  All train/test splits and dataset generations
+    use this shared RNG, ensuring reproducibility across runs.
+
+    The factory pattern (passing callables that return model/dataset instances)
+    prevents state leakage between experiments — each model gets a fresh
+    instance with no carryover from previous fits.
+    """
 
     def __init__(self, seed: Optional[int] = None) -> None:
         """Initialize runner.
@@ -43,14 +66,14 @@ class ExperimentRunner:
         Args:
             seed: Global random seed for reproducibility.
         """
-        self._seed = seed
-        self._rng: Optional[np.random.Generator] = None
+        self.seed = seed
+        self.rng: Optional[np.random.Generator] = None
 
     def _get_rng(self) -> np.random.Generator:
         """Return a deterministic RNG, creating one if necessary."""
-        if self._rng is None:
-            self._rng = np.random.default_rng(self._seed)
-        return self._rng
+        if self.rng is None:
+            self.rng = np.random.default_rng(self.seed)
+        return self.rng
 
     def run_experiment(
         self,
@@ -63,16 +86,20 @@ class ExperimentRunner:
     ) -> ExperimentResult:
         """Run a single model on a single dataset.
 
+        Splits the data, fits the model, generates predictions, and computes
+        all metrics.  Wall-clock times for fit and predict are recorded
+        separately to enable efficiency comparisons.
+
         Args:
-            model_name: Human-readable model name.
+            model_name: Human-readable model name (used in result tables).
             model: Model object with ``fit(X, y)`` and ``predict(X)`` methods.
             dataset_name: Human-readable dataset name.
-            X: Full input matrix.
-            y: Full target vector.
+            X: Full input matrix of shape ``(n, d)``.
+            y: Full target vector of shape ``(n,)``.
             test_size: Fraction of data to hold out for testing.
 
         Returns:
-            ExperimentResult with metrics and timings.
+            ``ExperimentResult`` with all metrics and timing information.
         """
         rng = self._get_rng()
         X_train, X_test, y_train, y_test = split_train_test(
@@ -105,15 +132,20 @@ class ExperimentRunner:
     ) -> List[ExperimentResult]:
         """Run all model factories on all dataset factories.
 
+        Executes the Cartesian product of models × datasets, generating
+        each dataset once per dataset factory call and fitting each model
+        independently.  Results are ordered by dataset, then by model.
+
         Args:
             models: Dictionary mapping model name to a factory callable
-                that returns a model instance.
+                that returns a fresh model instance (no arguments).
             datasets: Dictionary mapping dataset name to a factory callable
-                that takes an RNG and returns (X, y).
+                that takes an ``np.random.Generator`` and returns
+                ``(X, y)`` or ``(X, y, true_weights)``.
             test_size: Fraction of data to hold out for testing.
 
         Returns:
-            List of ExperimentResult objects.
+            List of ``ExperimentResult`` objects, one per (model, dataset) pair.
         """
         results: List[ExperimentResult] = []
         rng = self._get_rng()
@@ -143,11 +175,16 @@ class ExperimentRunner:
 def format_results_table(results: List[ExperimentResult]) -> str:
     """Format experiment results as a markdown table.
 
+    Produces a GitHub-flavored markdown table with columns for model name,
+    dataset name, RMSE, MAE, R^2, fit time, and predict time.  Values
+    are formatted to 6 decimal places for metrics and 4 for timings.
+
     Args:
-        results: List of ExperimentResult objects.
+        results: List of ``ExperimentResult`` objects to format.
 
     Returns:
-        Markdown-formatted table string.
+        Markdown-formatted table string suitable for printing or writing
+        to a file.
     """
     lines = [
         "| Model | Dataset | RMSE | MAE | R^2 | Fit (s) | Predict (s) |",

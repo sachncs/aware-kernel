@@ -1,7 +1,22 @@
 """Synthetic regression datasets for evaluation.
 
-Implements standard synthetic benchmarks used to validate the
-aware-kernel method against baselines.
+Provides reproducible dataset generators for benchmarking aware-kernel
+against baselines.  Each generator returns data as NumPy arrays with
+optional access to ground-truth weights (enabling noise-free evaluation
+of model quality).
+
+Four dataset types are provided, covering increasing difficulty:
+
+1. **Linear**: ``y = Xw + noise`` — the simplest case where ridge
+   regression is optimal; any kernel method should match this.
+2. **Polynomial**: Univariate polynomial with additive noise — tests
+   ability to capture nonlinear structure.
+3. **High-dimensional**: Sparse true weights in a high-dimensional
+   space — tests behavior when ``d >> n``.
+4. **Heteroscedastic**: Input-dependent noise — tests robustness to
+   non-stationary noise.
+
+All generators accept an ``np.random.Generator`` for reproducibility.
 """
 
 from typing import Optional, Tuple
@@ -19,15 +34,21 @@ def make_linear_regression(
 ) -> Tuple[Array, Array, Array]:
     """Generate a synthetic linear regression dataset.
 
+    Produces ``y = X @ true_w + noise * epsilon`` where ``X`` and
+    ``true_w`` are drawn from ``N(0, 1)`` and ``epsilon ~ N(0, 1)``.
+    This is the easiest benchmark — a well-tuned ridge regression should
+    recover ``true_w`` nearly exactly for large ``n``.
+
     Args:
-        rng: NumPy random generator.
+        rng: NumPy random generator for reproducibility.
         n_samples: Number of samples.
         n_features: Number of input features.
-        noise: Standard deviation of Gaussian noise.
+        noise: Standard deviation of additive Gaussian noise.
 
     Returns:
-        Tuple of (X, y, true_weights) where X has shape (n_samples, n_features),
-        y has shape (n_samples,), and true_weights has shape (n_features,).
+        Tuple of ``(X, y, true_weights)`` where ``X`` has shape
+        ``(n_samples, n_features)``, ``y`` has shape ``(n_samples,)``,
+        and ``true_weights`` has shape ``(n_features,)``.
     """
     X = rng.standard_normal((n_samples, n_features))
     true_w = rng.standard_normal(n_features)
@@ -43,15 +64,20 @@ def make_polynomial_regression(
 ) -> Tuple[Array, Array]:
     """Generate a synthetic univariate polynomial regression dataset.
 
+    Produces ``y = sum_p coeffs[p] * x^p + noise`` where ``x`` is
+    drawn from ``N(0, 1)`` and ``coeffs`` are i.i.d. ``N(0, 1)``.
+    The polynomial structure requires nonlinear function approximation,
+    making this a basic test of kernel methods.
+
     Args:
-        rng: NumPy random generator.
+        rng: NumPy random generator for reproducibility.
         n_samples: Number of samples.
-        degree: Polynomial degree.
-        noise: Standard deviation of Gaussian noise.
+        degree: Polynomial degree (highest power).
+        noise: Standard deviation of additive Gaussian noise.
 
     Returns:
-        Tuple of (X, y) where X has shape (n_samples, 1) and y has shape
-        (n_samples,).
+        Tuple of ``(X, y)`` where ``X`` has shape ``(n_samples, 1)``
+        and ``y`` has shape ``(n_samples,)``.
     """
     X = rng.standard_normal((n_samples, 1))
     coeffs = rng.standard_normal(degree + 1)
@@ -71,15 +97,20 @@ def make_high_dim_regression(
 ) -> Tuple[Array, Array, Array]:
     """Generate a high-dimensional regression with sparse true weights.
 
+    Produces ``y = X @ true_w + noise * epsilon`` where ``true_w`` has
+    exactly ``n_informative`` nonzero entries chosen uniformly at random.
+    This tests behavior in the ``d >> n`` regime and verifies that the
+    ridge penalty effectively regularizes irrelevant dimensions.
+
     Args:
-        rng: NumPy random generator.
+        rng: NumPy random generator for reproducibility.
         n_samples: Number of samples.
-        n_features: Number of input features.
-        n_informative: Number of nonzero true weights.
-        noise: Standard deviation of Gaussian noise.
+        n_features: Total number of input features.
+        n_informative: Number of nonzero entries in ``true_w``.
+        noise: Standard deviation of additive Gaussian noise.
 
     Returns:
-        Tuple of (X, y, true_weights).
+        Tuple of ``(X, y, true_weights)``.
     """
     X = rng.standard_normal((n_samples, n_features))
     true_w = np.zeros(n_features)
@@ -96,13 +127,19 @@ def make_heteroscedastic_regression(
 ) -> Tuple[Array, Array]:
     """Generate a regression dataset with input-dependent noise.
 
+    Produces ``y = sin(2*pi*x) + noise_base * (1 + |x|) * epsilon``.
+    The noise standard deviation grows with ``|x|``, creating
+    heteroscedasticity that penalizes models which assume uniform noise.
+    This tests robustness to non-stationary noise distributions.
+
     Args:
-        rng: NumPy random generator.
+        rng: NumPy random generator for reproducibility.
         n_samples: Number of samples.
-        noise_base: Base noise scale.
+        noise_base: Base noise scale (multiplied by ``1 + |x|``).
 
     Returns:
-        Tuple of (X, y) where X has shape (n_samples, 1).
+        Tuple of ``(X, y)`` where ``X`` has shape ``(n_samples, 1)``
+        and ``y`` has shape ``(n_samples,)``.
     """
     X = rng.standard_normal((n_samples, 1))
     signal = np.sin(2.0 * np.pi * X[:, 0])
@@ -119,14 +156,17 @@ def split_train_test(
 ) -> Tuple[Array, Array, Array, Array]:
     """Split data into train and test sets.
 
+    Uses a simple index-based split (no stratification) appropriate for
+    regression.  The split is deterministic when ``rng`` is provided.
+
     Args:
-        X: Input matrix of shape (n, d).
-        y: Target vector of shape (n,).
-        test_size: Fraction of data to use for testing.
-        rng: Optional random generator for shuffling.
+        X: Input matrix of shape ``(n, d)``.
+        y: Target vector of shape ``(n,)``.
+        test_size: Fraction of data to hold out for testing (0 to 1).
+        rng: Optional random generator for shuffling before splitting.
 
     Returns:
-        Tuple of (X_train, X_test, y_train, y_test).
+        Tuple of ``(X_train, X_test, y_train, y_test)``.
     """
     n = X.shape[0]
     n_test = int(n * test_size)

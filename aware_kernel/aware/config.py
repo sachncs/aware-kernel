@@ -1,7 +1,31 @@
 """Configuration dataclasses for aware-kernel.
 
-All hyperparameters and numerical thresholds are centralized here
-to ensure consistency across modules.
+All hyperparameters and numerical thresholds are centralized here to ensure
+consistency across modules.  The configuration hierarchy mirrors the logical
+structure of the method:
+
+* ``NumericsConfig`` -- Controls numerical stability (eigenvalue clipping,
+  epsilon scaling, condition-number thresholds, precision).
+* ``RefreshConfig`` -- Governs the adaptive refresh controller (drift
+  threshold, cooldown, warmup, budget, anchor sampling mix).
+* ``AblationConfig`` -- Boolean switches for controlled component removal,
+  corresponding to the ablation study in Section 7 of the method blueprint.
+* ``TrainingConfig`` -- Top-level master configuration that composes the above
+  sub-configs and adds training-specific parameters (rank budgets,
+  regularization, learning rate, outer-loop weights).
+
+All dataclasses are **frozen** (immutable) to prevent accidental mutation
+during training.  Each provides a ``copy_with`` helper that returns a new
+instance with selected fields overridden -- this is the idiomatic way to
+adjust configuration at runtime without violating immutability.
+
+Design rationale
+----------------
+Centralizing configuration avoids the "scattered magic number" problem
+common in research codebases.  Every numerical constant that affects
+correctness or stability lives in exactly one place and is documented
+with its purpose.  The ``AblationConfig`` switches enable reproducible
+ablation experiments without code duplication.
 """
 
 from dataclasses import dataclass, field
@@ -10,7 +34,20 @@ from typing import Optional
 
 
 class MemoryMode(Enum):
-    """Operating mode for feature memory."""
+    """Operating mode for feature memory accumulation.
+
+    Controls how normal equations are accumulated during training:
+
+    * ``CACHED`` -- Stores the full feature matrix ``Phi`` explicitly.
+      Memory O(n * m), enables direct normal-equation construction and
+      feature reconstruction.  Preferred for small-to-medium datasets.
+    * ``STREAMED`` -- Accumulates ``S = Phi^T Phi`` and ``b = Phi^T y``
+      directly.  Memory O(m^2), discards individual samples.  Preferred
+      for large datasets where storing ``Phi`` is prohibitive.
+
+    Both modes produce identical coefficients when given the same data
+    and seed (verified by parity tests).
+    """
 
     CACHED = "cached"
     STREAMED = "streamed"
@@ -20,15 +57,35 @@ class MemoryMode(Enum):
 class NumericsConfig:
     """Numerical stability and precision configuration.
 
+    Centralizes all thresholds that control the trade-off between
+    accuracy and numerical robustness.  These defaults were tuned on
+    synthetic benchmarks to work across a range of dataset scales.
+
     Attributes:
-        tau_eig: Eigenvalue threshold for soft truncation.
-        alpha_epsilon: Scale factor for dataset-scale epsilon.
-        epsilon_c: Minimum calibration scaling to prevent collapse.
+        tau_eig: Eigenvalue threshold for soft truncation in the whitening
+            map.  Eigenvalues below ``tau_eig`` are down-weighted via the
+            soft-truncation formula rather than being hard-clipped, which
+            avoids discontinuities in the feature map.
+        alpha_epsilon: Scale factor for the dataset-scale epsilon used in
+            whitening: ``epsilon = alpha_epsilon * tr(W) / m_g``.  This
+            makes the stabilization epsilon proportional to the average
+            eigenvalue of the kernel matrix.
+        epsilon_c: Minimum calibration scaling to prevent feature collapse.
+            Ensures ``c_g, c_l > 0`` even when feature traces are near
+            zero.
         lambda_min: Floor on ridge regularization for SPD normal equations.
-        eta_o: Orthogonalization ridge regularizer scale factor.
-        beta: Scale factor for orthogonalization regularizer.
-        kappa_threshold: Maximum acceptable condition number.
-        precision: Default precision for accumulations ("float32" or "float64").
+            The effective regularization is ``max(lambda_reg, lambda_min)``.
+        eta_o: Ridge regularizer scale factor for the orthogonalization
+            matrix ``P_g = Phi_g (Phi_g^T Phi_g + eta_o * I)^{-1} Phi_g^T``.
+            Prevents singularity when the global feature matrix is
+            rank-deficient.
+        beta: Scale factor for the orthogonalization regularizer, used in
+            conjunction with ``eta_o``.
+        kappa_threshold: Maximum acceptable condition number for the normal
+            equations matrix.  If exceeded, a ``ConditioningError`` is
+            raised.
+        precision: Default precision for accumulations (``"float32"`` or
+            ``"float64"``).  Float64 is recommended for most use cases.
     """
 
     tau_eig: float = 1e-6
@@ -45,7 +102,17 @@ class NumericsConfig:
             raise ValueError(f"precision must be float32 or float64, got {self.precision}")
 
     def copy_with(self, **kwargs) -> "NumericsConfig":
-        """Return a new NumericsConfig with updated fields."""
+        """Return a new NumericsConfig with the specified fields overridden.
+
+        This is the only way to modify a frozen configuration instance.
+        All unspecified fields retain their current values.
+
+        Args:
+            **kwargs: Fields to override (e.g., ``tau_eig=1e-5``).
+
+        Returns:
+            A new ``NumericsConfig`` with updated values.
+        """
         current = {
             "tau_eig": self.tau_eig,
             "alpha_epsilon": self.alpha_epsilon,
@@ -64,14 +131,36 @@ class NumericsConfig:
 class RefreshConfig:
     """Refresh controller configuration.
 
+    Governs the adaptive refresh mechanism that determines *when* discrete
+    basis parameters (landmarks, anchors, whitening maps) should be
+    recomputed.  The refresh decision combines five conditions:
+
+    1. **Drift threshold** (``delta_hi``): Representation drift must
+       exceed this value.
+    2. **Cooldown** (``t_cool``): Sufficient steps must have elapsed
+       since the last refresh.
+    3. **Warmup** (``t_warmup``): The training step must exceed this
+       minimum before any refresh is allowed.
+    4. **Hysteresis** (``b_t``): The hysteresis flag must be active.
+    5. **Budget** (``gamma_cost * refresh_cost``): The estimated
+       validation gain must justify the amortized refresh cost.
+
     Attributes:
-        delta_hi: High threshold for drift metric to trigger refresh.
-        t_cool: Minimum steps between refreshes (cooldown).
-        t_warmup: Minimum step before first refresh allowed.
+        delta_hi: High threshold for the relative Frobenius-norm drift
+            metric ``Delta = ||R_t - R_{t_r}||_F / ||R_{t_r}||_F``.
+        t_cool: Minimum number of training steps between consecutive
+            refreshes.
+        t_warmup: Minimum training step before the first refresh is
+            permitted.
         gamma_cost: Validation gain threshold scaled by refresh cost.
-        alpha_a: Mix weight for residual-aware anchor sampling (0=coverage, 1=residual).
-        tau_local: Bandwidth for local sparse features.
-        k_local: Number of nearest neighbors for sparse features.
+            A refresh only triggers if ``Delta L_val > gamma_cost * C_refresh``.
+        alpha_a: Mix weight for residual-aware anchor sampling.  ``0.0``
+            means pure coverage-based sampling (k-means++), ``1.0`` means
+            pure residual-based sampling.
+        tau_local: Bandwidth parameter for the local sparse RBF features.
+            Controls the locality of the corrective basis.
+        k_local: Number of nearest neighbors for the k-NN sparse feature
+            computation.  Must be ``<= m_l``.
     """
 
     delta_hi: float = 0.1
@@ -83,7 +172,14 @@ class RefreshConfig:
     k_local: int = 5
 
     def copy_with(self, **kwargs) -> "RefreshConfig":
-        """Return a new RefreshConfig with updated fields."""
+        """Return a new RefreshConfig with the specified fields overridden.
+
+        Args:
+            **kwargs: Fields to override.
+
+        Returns:
+            A new ``RefreshConfig`` with updated values.
+        """
         current = {
             "delta_hi": self.delta_hi,
             "t_cool": self.t_cool,
@@ -99,16 +195,37 @@ class RefreshConfig:
 
 @dataclass(frozen=True)
 class AblationConfig:
-    """Ablations for controlled component removal.
+    """Ablation switches for controlled component removal.
 
-    Implements Section 7 ablation requirements:
-        - disable_refresh: skip all discrete refreshes (static basis).
-        - disable_hysteresis: force b_t = 1 permanently.
-        - disable_cooldown: set effective cooldown to 0.
-        - disable_residual_aware_anchors: use coverage-only (kmeans++) sampling.
-        - disable_orthogonalization: skip local orthogonalization against global.
-        - disable_diversity_penalty: set gamma_div = 0 in outer objective.
-        - static_scaling: freeze calibration scalars after first refresh.
+    Implements the ablation study requirements from Section 7 of the method
+    blueprint.  Each flag disables a specific algorithmic component while
+    keeping the rest of the pipeline intact, enabling rigorous
+    component-by-component evaluation.
+
+    Design rationale
+        Ablations are implemented as configuration flags rather than
+        separate code paths to avoid branching complexity and to ensure
+        that ablated experiments share the exact same code as full-model
+        experiments.
+
+    Attributes:
+        disable_refresh: If ``True``, skip all discrete refreshes and
+            maintain a static basis throughout training.
+        disable_hysteresis: If ``True``, force ``b_t = 1`` permanently,
+            disabling the hysteresis dampening mechanism.
+        disable_cooldown: If ``True``, set effective cooldown to 0,
+            allowing refreshes at every step (subject to drift threshold).
+        disable_residual_aware_anchors: If ``True``, use pure
+            coverage-based (k-means++) anchor sampling instead of the
+            residual-aware blend.
+        disable_orthogonalization: If ``True``, skip the local-to-global
+            orthogonalization step, allowing local features to overlap
+            with the global subspace.
+        disable_diversity_penalty: If ``True``, set ``gamma_div = 0``,
+            removing the diversity penalty from the outer objective.
+        static_scaling: If ``True``, freeze calibration scalars ``c_g``
+            and ``c_l`` after the first refresh, preventing them from
+            updating with the evolving feature statistics.
     """
 
     disable_refresh: bool = False
@@ -124,24 +241,43 @@ class AblationConfig:
 class TrainingConfig:
     """Master training configuration.
 
+    Top-level configuration that composes all sub-configurations and adds
+    training-specific parameters.  This is the single object passed to
+    ``TrainingLoop`` and ``AwareKernelEstimator``.
+
     Attributes:
-        embedding_dim: Dimension of continuous embedding space.
-        m_g: Global basis rank budget (landmarks).
-        m_l: Local corrective rank budget (anchors).
-        lambda_reg: Ridge regularization parameter.
+        embedding_dim: Dimension of the continuous embedding space.
+            Larger values increase expressivity but also increase the cost
+            of projection and basis construction.
+        m_g: Global basis rank budget (number of landmarks).  Controls
+            the capacity of the Nyström global feature map.
+        m_l: Local corrective rank budget (number of anchors).  Must be
+            ``<= 0.25 * m_g`` to ensure the local basis remains a small
+            correction rather than a competing representation.
+        lambda_reg: Ridge regularization parameter for the normal
+            equations.  Must be ``>= numerics.lambda_min``.
         memory_mode: Cached or streamed feature accumulation.
         numerics: Numerical stability configuration.
         refresh: Refresh controller configuration.
         ablation: Ablation switches.
-        max_steps: Maximum training steps.
-        eval_freq: Evaluation frequency in steps.
-        seed: Random seed for reproducibility.
-        lr: Learning rate for outer-loop optimizer on R.
-        lambda_r: Frobenius regularizer weight on R.
-        lambda_orth: Orthogonality penalty weight on R.
-        gamma_div: Diversity penalty weight in outer objective.
-        fd_epsilon: Finite-difference perturbation magnitude.
-        total_refresh_budget: Total amortized refresh budget (inf disables budgeting).
+        max_steps: Maximum number of training steps.
+        eval_freq: Evaluation frequency in steps.  Metrics are computed
+            every ``eval_freq`` steps.
+        seed: Random seed for reproducibility.  ``None`` for non-
+            deterministic behavior.
+        lr: Learning rate for the outer-loop gradient descent on the
+            projection matrix ``R``.
+        lambda_r: Frobenius regularizer weight on ``R``.  Encourages
+            small-norm projections.
+        lambda_orth: Orthogonality penalty weight on ``R``.  Penalizes
+            deviation from ``R^T R = I``.
+        gamma_div: Diversity penalty weight in the outer objective.
+            Encourages global and local features to span complementary
+            subspaces.
+        fd_epsilon: Finite-difference perturbation magnitude for gradient
+            estimation in the outer-loop optimizer.
+        total_refresh_budget: Total amortized refresh budget over the
+            training horizon.  ``float("inf")`` disables budgeting.
         refresh_cost: Fixed cost per refresh for budget accounting.
     """
 
