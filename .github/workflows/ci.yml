@@ -74,13 +74,13 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run unit tests
-        run: pytest tests/unit/ -v -p no:asyncio --tb=short
+        run: pytest tests/unit/ -v -p no:asyncio --tb=short --no-cov
 
       - name: Run numerical tests
-        run: pytest tests/numerical/ -v -p no:asyncio --tb=short
+        run: pytest tests/numerical/ -v -p no:asyncio --tb=short --no-cov
 
       - name: Run integration tests
-        run: pytest tests/integration/ -v -p no:asyncio --tb=short
+        run: pytest tests/integration/ -v -p no:asyncio --tb=short --no-cov
 
       - name: Run full test suite with coverage
         run: pytest tests/ -v -p no:asyncio --cov=aware_kernel --cov-report=term-missing --cov-fail-under=80
