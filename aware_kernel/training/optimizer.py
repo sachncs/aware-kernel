@@ -214,7 +214,8 @@ class OuterObjectiveOptimizer:
             # Central difference approximation of the directional derivative.
             grad += (obj_plus - obj_minus) / (2.0 * self.fd_epsilon) * D
 
-        return grad / n_dir
+        result: Array = grad / n_dir
+        return result
 
     def step(
         self,

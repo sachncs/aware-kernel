@@ -139,4 +139,4 @@ class CachedMemoryAccumulator(BaseMemoryAccumulator):
         """Number of accumulated samples."""
         if self.Phi is None:
             return 0
-        return self.Phi.shape[0]
+        return int(self.Phi.shape[0])

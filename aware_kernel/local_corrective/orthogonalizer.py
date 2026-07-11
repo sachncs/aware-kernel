@@ -59,7 +59,8 @@ def compute_orthogonalization_matrix(
     # Solve (Phi_g^T Phi_g + eta_o I)^{-1} Phi_g^T without forming
     # the full inverse, which would be O(n^3) and numerically unstable.
     inv_gram_phi_g_t = np.linalg.solve(gram, phi_g.T)
-    return phi_g @ inv_gram_phi_g_t
+    result: Array = phi_g @ inv_gram_phi_g_t
+    return result
 
 
 def orthogonalize_local_features(
@@ -86,7 +87,8 @@ def orthogonalize_local_features(
         ``(n, m_l)``.
     """
     P_g = compute_orthogonalization_matrix(phi_g, eta_o)
-    return phi_l - P_g @ phi_l
+    result: Array = phi_l - P_g @ phi_l
+    return result
 
 
 def check_orthogonality(
