@@ -66,7 +66,7 @@ target-version = ["py310"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
-select = [
+lint.select = [
     "E",   # pycodestyle errors
     "F",   # Pyflakes
     "I",   # isort
@@ -77,7 +77,13 @@ select = [
     "C4",  # flake8-comprehensions
     "SIM", # flake8-simplify
 ]
-ignore = ["E501"]  # Line length handled by black
+lint.ignore = [
+    "E501",   # Line length handled by black
+    "N806",   # Uppercase variable names (standard in scientific computing: X, R, U, K, etc.)
+    "N803",   # Uppercase argument names (standard in scientific computing)
+    "N802",   # Uppercase function names (standard in scientific computing)
+    "E741",   # Ambiguous variable names (l, O, I are standard in linear algebra)
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
