@@ -139,7 +139,7 @@ def pcg_solve(
             dtype=s.dtype,
         )
 
-    w, info = spla.cg(A_op, b, tol=tol, maxiter=max_iter, M=M_inv)
+    w, info = spla.cg(A_op, b, rtol=tol, maxiter=max_iter, M=M_inv)
 
     if info < 0:
         # Negative info indicates a breakdown (e.g., indefinite matrix).
