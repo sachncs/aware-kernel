@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Comprehensive Google-style docstrings across all 34 source modules
+- Enhanced module-level documentation explaining package responsibilities and architecture
+- Algorithm descriptions, complexity analysis, and mathematical formulas in docstrings
+- Thread-safety notes, design rationale, and recovery strategies in exception docstrings
+- References to academic papers (Drineas & Mahoney 2005, Arthur & Vassilvitskii 2007, Spall 1992)
 - MIT License file
 - CONTRIBUTING.md with development guidelines
 - CODE_OF_CONDUCT.md (Contributor Covenant v2.1)
@@ -28,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Converted semi-private naming conventions to public API (removed `_` prefix from attributes with property accessors)
+- Replaced `print` statements with `logging` module in training callbacks
+- Updated tests to reflect public attribute naming
 - Updated README.md with badges, detailed sections, and improved examples
 - Updated pyproject.toml with correct repository URLs, classifiers, and metadata
 - Updated .gitignore with additional Python-specific patterns
