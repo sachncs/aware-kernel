@@ -89,9 +89,9 @@ class TrainingLoop:
             lr=config.lr,
             lambda_r=config.lambda_r,
             lambda_orth=config.lambda_orth,
-            gamma_div=0.0
-            if config.ablation.disable_diversity_penalty
-            else config.gamma_div,
+            gamma_div=(
+                0.0 if config.ablation.disable_diversity_penalty else config.gamma_div
+            ),
             fd_epsilon=config.fd_epsilon,
         )
         self.budget = BudgetAccountant(total_budget=config.total_refresh_budget)

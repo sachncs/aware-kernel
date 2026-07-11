@@ -183,15 +183,15 @@ def make_aware_kernel(
         disable_refresh=ablation.disable_refresh if ablation else False,
         disable_hysteresis=ablation.disable_hysteresis if ablation else False,
         disable_cooldown=ablation.disable_cooldown if ablation else False,
-        disable_residual_aware_anchors=ablation.disable_residual_aware_anchors
-        if ablation
-        else False,
-        disable_orthogonalization=ablation.disable_orthogonalization
-        if ablation
-        else False,
-        disable_diversity_penalty=ablation.disable_diversity_penalty
-        if ablation
-        else False,
+        disable_residual_aware_anchors=(
+            ablation.disable_residual_aware_anchors if ablation else False
+        ),
+        disable_orthogonalization=(
+            ablation.disable_orthogonalization if ablation else False
+        ),
+        disable_diversity_penalty=(
+            ablation.disable_diversity_penalty if ablation else False
+        ),
         static_scaling=ablation.static_scaling if ablation else False,
     )
 
