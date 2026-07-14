@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">AwareKernel</h1>
+  <h1 align="center">aware-kernel</h1>
   <p align="center">Refresh-aware hybrid continuous-discrete low-rank kernel learning for scalable, adaptive kernel regression.</p>
   <p align="center">
     <a href="#installation"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue" alt="Python"></a>
@@ -33,7 +33,7 @@ groups, enabling efficient training with dynamic basis adaptation.
 
 ## Installation
 
-### From PyPI (when published)
+### From PyPI
 
 ```bash
 pip install aware-kernel
@@ -149,6 +149,72 @@ See [docs/getting-started.md](docs/getting-started.md) for detailed configuratio
 
 ---
 
+## API
+
+| Symbol | Type | Description |
+|--------|------|-------------|
+| `AwareKernelEstimator` | class | Sklearn-compatible estimator |
+| `AwareKernelEstimator.fit` | method | Fit the model on training data |
+| `AwareKernelEstimator.predict` | method | Predict target values |
+| `AwareKernelEstimator.score` | method | R² score on test data |
+| `AwareKernelEstimator(memory_mode=...)` | constructor arg | "cached" or "streamed" |
+| `AwareKernelEstimator(disable_refresh=...)` | constructor arg | Ablation toggle |
+
+---
+
+## Examples
+
+### Basic regression with synthetic data
+
+```python
+import numpy as np
+from aware_kernel import AwareKernelEstimator
+
+rng = np.random.default_rng(42)
+X = rng.standard_normal((200, 4))
+y = X[:, 0] + 0.5 * X[:, 1] ** 2 + 0.1 * rng.standard_normal(200)
+
+model = AwareKernelEstimator(seed=42).fit(X, y)
+print(model.score(X, y))
+```
+
+### GridSearchCV integration
+
+```python
+from sklearn.model_selection import GridSearchCV
+from aware_kernel import AwareKernelEstimator
+
+param_grid = {"m_g": [16, 32, 64], "m_l": [4, 8, 16], "lambda_reg": [1e-3, 1e-2]}
+search = GridSearchCV(AwareKernelEstimator(seed=42), param_grid, cv=5)
+search.fit(X_train, y_train)
+print(search.best_params_)
+```
+
+See [examples/](examples/) for full evaluation scripts.
+
+---
+
+## Architecture
+
+The method separates model parameters into two groups:
+
+- **Continuous parameters** (`theta`, `R`): Updated every training step via gradient descent
+- **Discrete parameters** (`Z`, `A`, `M_g`, `c_g`, `c_l`, `rho`): Refreshed only when drift exceeds a threshold
+
+This hybrid approach makes the method efficient for streaming/large-batch settings, because the expensive discrete refresh is triggered adaptively rather than every step.
+
+### Mathematical Guarantees
+
+1. **PSD kernel**: `K = Phi Phi^T` is positive semidefinite
+2. **Rank bound**: `rank(K) <= r_g + m_l`
+3. **SPD normal equations**: `S = Phi^T Phi + lambda I` is symmetric positive definite
+4. **Orthogonalization**: `Phi_g^T Phi_l_perp ~= 0` up to ridge regularization
+5. **Calibration stability**: calibration scalars bounded away from zero
+
+See [docs/architecture.md](docs/architecture.md) for full design rationale and extension points.
+
+---
+
 ## Project Structure
 
 ```
@@ -217,26 +283,11 @@ aware-kernel/
 ## Development
 
 ```bash
-# Install with dev dependencies
 pip install -e ".[dev]"
-
-# Run tests
 pytest tests/ -v
-
-# Run unit tests only
-pytest tests/unit/ -v
-
-# Lint
 ruff check aware_kernel/ tests/
-
-# Format
 ruff format aware_kernel/ tests/
-
-# Type check
 mypy aware_kernel/
-
-# All checks
-pytest && ruff check aware_kernel/ tests/ && mypy aware_kernel/
 ```
 
 ### Code Style
@@ -262,24 +313,30 @@ chore: update ruff config
 
 ---
 
-## Architecture
+## Testing
 
-The method separates model parameters into two groups:
+```bash
+pytest tests/ -v                # Full suite
+pytest tests/unit/ -v           # Unit tests only
+pytest --cov=aware_kernel       # With coverage
+```
 
-- **Continuous parameters** (`theta`, `R`): Updated every training step via gradient descent
-- **Discrete parameters** (`Z`, `A`, `M_g`, `c_g`, `c_l`, `rho`): Refreshed only when drift exceeds a threshold
+---
 
-This hybrid approach makes the method efficient for streaming/large-batch settings, because the expensive discrete refresh is triggered adaptively rather than every step.
+## Build
 
-### Mathematical Guarantees
+```bash
+python -m build
+```
 
-1. **PSD kernel**: `K = Phi Phi^T` is positive semidefinite
-2. **Rank bound**: `rank(K) <= r_g + m_l`
-3. **SPD normal equations**: `S = Phi^T Phi + lambda I` is symmetric positive definite
-4. **Orthogonalization**: `Phi_g^T Phi_l_perp ~= 0` up to ridge regularization
-5. **Calibration stability**: calibration scalars bounded away from zero
+---
 
-See [docs/architecture.md](docs/architecture.md) for full design rationale and extension points.
+## Release
+
+1. Bump version in `pyproject.toml`
+2. Update `CHANGELOG.md`
+3. Commit with a `version:X.Y.Z` message
+4. Tag and push — CI publishes to PyPI
 
 ---
 
@@ -299,9 +356,7 @@ See [docs/architecture.md](docs/architecture.md) for full design rationale and e
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned features and milestones.
-
-- **v0.1.0** — Current release: core implementation, sklearn API, test suite
+- **v0.0.2** — Current release: core implementation, sklearn API, test suite
 - **v0.2.0** — GPU solver backend (CuPy), learned embedding functions
 - **v1.0.0** — Stable API, PyPI release, streaming/incremental fit
 
