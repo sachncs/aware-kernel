@@ -5,8 +5,8 @@
     <a href="#installation"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue" alt="Python"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
     <a href="https://github.com/sachncs/aware-kernel/actions"><img src="https://img.shields.io/github/actions/workflow/status/sachncs/aware-kernel/ci.yml?branch=master" alt="CI"></a>
+    <a href="https://pypi.org/project/aware-kernel/"><img src="https://img.shields.io/pypi/v/aware-kernel" alt="PyPI"></a>
     <a href="https://github.com/sachncs/aware-kernel/stargazers"><img src="https://img.shields.io/github/stars/sachncs/aware-kernel" alt="Stars"></a>
-    <a href="https://mypy-lang.org/"><img src="https://img.shields.io/badge/mypy-strict-green.svg" alt="Checked with mypy"></a>
   </p>
 </p>
 
@@ -32,6 +32,12 @@ groups, enabling efficient training with dynamic basis adaptation.
 ---
 
 ## Installation
+
+### From PyPI (when published)
+
+```bash
+pip install aware-kernel
+```
 
 ### From source
 
@@ -239,7 +245,6 @@ pytest && ruff check aware_kernel/ tests/ && mypy aware_kernel/
 - Quotes: double (`"`)
 - Formatting: ruff (auto-format with `ruff format`)
 - Type hints: required on all public signatures
-- Docstrings: Google-style with "what" and "why"
 - No semi-private naming (`_foo`) — all identifiers are public
 
 ### Commit Conventions

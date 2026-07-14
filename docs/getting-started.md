@@ -12,7 +12,7 @@ This guide walks you through installing and using AwareKernel for the first time
 ### From source (recommended for development)
 
 ```bash
-git clone https://github.com/sachn-cs/aware-kernel.git
+git clone https://github.com/sachncs/aware-kernel.git
 cd aware-kernel
 pip install -e ".[dev]"
 ```

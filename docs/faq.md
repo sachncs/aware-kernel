@@ -33,7 +33,7 @@ Python 3.10, 3.11, and 3.12 are officially supported and tested in CI.
 ### How do I install for development?
 
 ```bash
-git clone https://github.com/sachn-cs/aware-kernel.git
+git clone https://github.com/sachncs/aware-kernel.git
 cd aware-kernel
 pip install -e ".[dev]"
 ```
