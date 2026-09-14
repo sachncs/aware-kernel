@@ -1,0 +1,87 @@
+---
+import "../styles/global.css";
+import { withBase, BASE } from "../lib/base";
+
+export interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
+}
+
+const {
+  title = "Kernos — Refresh-aware hybrid kernel learning for scalable regression",
+  description = "A Python library that learns adaptive low-rank kernels for regression. Refresh the basis only when it drifts. Drop-in for scikit-learn.",
+  image = "/og.svg",
+  canonical,
+} = Astro.props;
+
+const siteUrl = "https://sachncs.github.io/kernos";
+const fullImage = `${siteUrl}${image.startsWith("/") ? image : `/${image}`}`;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0a0d" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={fullImage} />
+    <meta property="og:site_name" content="Kernos" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={fullImage} />
+
+    <link rel="icon" type="image/svg+xml" href={withBase("/favicon.svg")} />
+    <link rel="apple-touch-icon" href={withBase("/logo-mark.svg")} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Kernos",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux, macOS, Windows",
+      "description": description,
+      "url": siteUrl,
+      "downloadUrl": "https://pypi.org/project/kernos/",
+      "license": "https://opensource.org/licenses/MIT",
+      "programmingLanguage": "Python",
+      "author": {
+        "@type": "Person",
+        "name": "Sachin"
+      }
+    })} />
+  </head>
+  <body class="bg-ink-950 text-ink-50 antialiased selection:bg-accent-500/30">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  html {
+    scrollbar-gutter: stable;
+  }
+</style>

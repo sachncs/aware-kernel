@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { withBase } from "../lib/base";
+---
+
+<BaseLayout title="404 — Kernos" description="The page you're looking for doesn't exist.">
+  <main class="grid min-h-screen place-items-center px-6 py-32">
+    <div class="mx-auto max-w-xl text-center">
+      <div class="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500">
+        404
+      </div>
+      <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight gradient-text sm:text-6xl">
+        Nothing here yet.
+      </h1>
+      <p class="mx-auto mt-5 max-w-md text-balance text-base leading-relaxed text-ink-300">
+        The page you're looking for has drifted off the manifold. Head back to the
+        homepage and pick a direction.
+      </p>
+      <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <a href={withBase("/")} class="btn-primary">Back to kernos</a>
+        <a
+          href="https://github.com/sachncs/kernos"
+          class="btn-ghost">Browse on GitHub</a
+        >
+      </div>
+    </div>
+  </main>
+</BaseLayout>

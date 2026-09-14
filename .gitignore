@@ -112,7 +112,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# Note: mkdocs `site/` output is ignored via inner `.gitignore` files
 
 # mypy
 .mypy_cache/

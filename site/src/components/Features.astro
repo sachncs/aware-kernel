@@ -1,0 +1,130 @@
+---
+const features = [
+  {
+    title: "Refresh-aware basis adaptation",
+    body: "Landmarks, anchors, calibration, and fusion refresh only when drift exceeds a threshold — with cooldown, warmup, hysteresis, and an amortized budget.",
+    icon: "refresh",
+  },
+  {
+    title: "Drop-in for scikit-learn",
+    body: "A familiar `fit` / `predict` / `score` surface. Plays well with `GridSearchCV`, `Pipeline`, and the rest of the sklearn ecosystem.",
+    icon: "puzzle",
+  },
+  {
+    title: "Mathematical guarantees",
+    body: "An explicit-feature kernel with PSD guarantee, a rank bound, and SPD normal equations. Calibration scalars stay bounded away from zero.",
+    icon: "sigma",
+  },
+  {
+    title: "Two memory modes",
+    body: "Cached `O(nm)` for in-core work and streamed `O(m²)` for large data and online learning — same algorithm, different memory budget.",
+    icon: "memory",
+  },
+  {
+    title: "Residual-aware local corrections",
+    body: "Anchor sampling weighted by residual magnitude, k-NN sparse RBF features, and orthogonalization that keeps local features in the global nullspace.",
+    icon: "anchor",
+  },
+  {
+    title: "Numerically stabilized",
+    body: "Eigenvalue clipping, soft spectral truncation, Cholesky with jitter fallback, and preconditioned conjugate gradient for ill-conditioned solves.",
+    icon: "shield",
+  },
+];
+---
+
+<section id="features" class="relative py-28 sm:py-36">
+  <div class="container-page">
+    <div class="mx-auto max-w-3xl text-center">
+      <span class="chip reveal">
+        <span class="chip-dot"></span>
+        Features
+      </span>
+      <h2
+        class="reveal mt-5 font-display text-3xl font-semibold tracking-tight gradient-text sm:text-5xl"
+      >
+        Kernel learning, without the rebuild.
+      </h2>
+      <p
+        class="reveal mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-ink-300"
+      >
+        Every piece of Kernos is engineered for one thing: an adaptive, low-rank
+        kernel that learns continuously and refreshes only when it has to.
+      </p>
+    </div>
+
+    <div class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        features.map((f, i) => (
+          <article
+            class="reveal group relative rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent p-6 transition-all hover:border-white/15 hover:from-white/[0.05]"
+            style={`animation-delay:${0.04 * i}s`}
+          >
+            <div class="flex items-center gap-3">
+              <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-accent-300 transition-colors group-hover:border-accent-500/40 group-hover:text-accent-200">
+                <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  {f.icon === "refresh" && (
+                    <>
+                      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                      <path d="M21 3v5h-5" />
+                      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                      <path d="M3 21v-5h5" />
+                    </>
+                  )}
+                  {f.icon === "puzzle" && (
+                    <path d="M19.4 13a2 2 0 0 0 .6-1.5V8a2 2 0 0 0-2-2h-3.5a2 2 0 1 0-3.5 1.6V11H8a2 2 0 0 0-1.6.5 2 2 0 0 1-3.4-1.7V4.6A2 2 0 0 1 4.6 3H8a2 2 0 0 1 2 2v3h2.4A2 2 0 0 0 14 6.6a2 2 0 0 1 1.5-.6h3.5" />
+                  )}
+                  {f.icon === "sigma" && (
+                    <>
+                      <path d="M18 4H6l6 8-6 8h12" />
+                    </>
+                  )}
+                  {f.icon === "memory" && (
+                    <>
+                      <rect x="3" y="6" width="18" height="12" rx="2" />
+                      <path d="M7 10v4M11 10v4M15 10v4M19 10v4" />
+                    </>
+                  )}
+                  {f.icon === "anchor" && (
+                    <>
+                      <circle cx="12" cy="5" r="2" />
+                      <path d="M12 22V12" />
+                      <path d="M5 12a7 7 0 0 0 14 0" />
+                    </>
+                  )}
+                  {f.icon === "shield" && (
+                    <>
+                      <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+                      <path d="M9 12l2 2 4-4" />
+                    </>
+                  )}
+                </svg>
+              </div>
+              <h3 class="font-display text-[16px] font-semibold tracking-tight text-ink-50">
+                {f.title}
+              </h3>
+            </div>
+            <p class="mt-4 text-[14px] leading-relaxed text-ink-300">
+              {f.body}
+            </p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.05, rootMargin: "0px 0px -10% 0px" }
+  );
+  document.querySelectorAll("#features .reveal").forEach((el) => observer.observe(el));
+</script>

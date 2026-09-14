@@ -1,0 +1,209 @@
+---
+import { highlight } from "../lib/highlight";
+
+const tabs = [
+  {
+    id: "fit",
+    label: "Fit & score",
+    code: `import numpy as np
+from kernos import Kernos
+
+rng = np.random.default_rng(42)
+X_train = rng.standard_normal((4000, 8))
+y_train = X_train[:, 0] + 0.5 * X_train[:, 1] ** 2 + 0.1 * rng.standard_normal(4000)
+X_test  = rng.standard_normal((1000, 8))
+
+model = Kernos(
+    dim=64, mbasis=256, abasis=32,
+    ridge=1e-2, steps=500, seed=42,
+).fit(X_train, y_train)
+
+print(f"R² on held-out: {model.score(X_test, y_test):.4f}")
+# → R² on held-out: 0.8923`,
+  },
+  {
+    id: "grid",
+    label: "GridSearchCV",
+    code: `from sklearn.model_selection import GridSearchCV
+from kernos import Kernos
+
+param_grid = {
+    "mbasis": [64, 128, 256],
+    "abasis": [16, 32, 64],
+    "ridge":  [1e-3, 1e-2, 1e-1],
+}
+
+search = GridSearchCV(
+    Kernos(seed=42, steps=300),
+    param_grid,
+    cv=5,
+    scoring="r2",
+    n_jobs=-1,
+)
+search.fit(X_train, y_train)
+print(search.best_params_, search.best_score_)`,
+  },
+  {
+    id: "stream",
+    label: "Streaming",
+    code: `from kernos import Kernos, Buffer
+
+# O(m²) memory mode — same algorithm, no full ΦᵀΦ cache.
+model = Kernos(
+    mode=Buffer.STREAM,
+    dim=32, mbasis=128, abasis=16,
+    steps=2000, seed=0,
+)
+
+# partial_fit drives the continuous descent; the refresh
+# controller still triggers when the basis drifts.
+for x_batch, y_batch in stream:
+    model.partial_fit(x_batch, y_batch)
+
+print(model.predict(X_test))`,
+  },
+];
+---
+
+<section id="api" class="relative py-28 sm:py-36">
+  <div class="container-page">
+    <div class="grid items-start gap-12 lg:grid-cols-[1fr_1.4fr]">
+      <div class="lg:sticky lg:top-32">
+        <span class="chip reveal">
+          <span class="chip-dot"></span>
+          API
+        </span>
+        <h2
+          class="reveal mt-5 font-display text-3xl font-semibold tracking-tight gradient-text sm:text-5xl"
+        >
+          Familiar surface.<br />Sophisticated internals.
+        </h2>
+        <p class="reveal mt-5 text-base leading-relaxed text-ink-300">
+          Use Kernos exactly like an sklearn estimator. Tune it with
+          <span class="font-mono text-ink-100">GridSearchCV</span>. Stream it
+          with <span class="font-mono text-ink-100">partial_fit</span>. Drop it
+          into a <span class="font-mono text-ink-100">Pipeline</span>.
+        </p>
+
+        <ul class="reveal mt-8 space-y-3 text-[14px] text-ink-300">
+          <li class="flex items-start gap-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+            <span><span class="text-ink-100">kernos.Kernos</span> — the estimator class.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+            <span><span class="text-ink-100">kernos.Buffer</span> — <span class="font-mono">FULL</span> or <span class="font-mono">STREAM</span> memory modes.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+            <span><span class="text-ink-100">kernos-eval</span> — CLI for the full evaluation suite.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+            <span><span class="text-ink-100">kernos-analyze</span> — produce plots, CSVs, LaTeX tables.</span>
+          </li>
+        </ul>
+
+        <div class="reveal mt-8 flex flex-wrap gap-3">
+          <a
+            href="https://github.com/sachncs/kernos/blob/master/docs/getting-started.md"
+            class="btn-ghost"
+          >
+            Read the docs
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#install" class="btn-primary">Install kernos</a>
+        </div>
+      </div>
+
+      <div class="reveal" id="api-card">
+        <div
+          class="gradient-border overflow-hidden rounded-3xl shadow-card"
+        >
+          <div
+            class="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-4 py-3"
+          >
+            <div class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+            </div>
+            <div class="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] p-1 text-[12px]" id="api-tabs" role="tablist">
+              {
+                tabs.map((t, i) => (
+                  <button
+                    role="tab"
+                    data-tab={t.id}
+                    class={`rounded-full px-3 py-1 transition ${
+                      i === 0
+                        ? "bg-white/10 text-white"
+                        : "text-ink-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))
+              }
+            </div>
+            <div class="hidden text-[11px] text-ink-500 sm:block">python 3.10+</div>
+          </div>
+
+          {
+            tabs.map((t, i) => (
+              <pre
+                role="tabpanel"
+                data-panel={t.id}
+                class={`overflow-x-auto px-6 py-6 font-mono text-[13.5px] leading-relaxed text-ink-100 sm:px-8 sm:text-[14px] ${i === 0 ? "" : "hidden"}`}
+                set:html={`<code>${highlight(t.code)}</code>`}
+              />
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .hl-k { color: #c084fc; }
+  .hl-s { color: #86efac; }
+  .hl-n { color: #fcd34d; }
+  .hl-t { color: #7c5cff; }
+  .hl-c { color: #71717a; font-style: italic; }
+  .hl-v { color: #e4e4e7; }
+</style>
+
+<script>
+  const tabs = document.getElementById("api-tabs");
+  const panels = document.querySelectorAll<HTMLElement>("[data-panel]");
+  const tabButtons = tabs?.querySelectorAll<HTMLButtonElement>("button[data-tab]");
+
+  function activate(id: string) {
+    tabButtons?.forEach((b) => {
+      const active = b.dataset.tab === id;
+      b.classList.toggle("bg-white/10", active);
+      b.classList.toggle("text-white", active);
+      b.classList.toggle("text-ink-300", !active);
+    });
+    panels.forEach((p) => {
+      p.classList.toggle("hidden", p.dataset.panel !== id);
+    });
+  }
+
+  tabButtons?.forEach((b) => {
+    b.addEventListener("click", () => activate(b.dataset.tab!));
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.05, rootMargin: "0px 0px -10% 0px" }
+  );
+  document.querySelectorAll("#api .reveal").forEach((el) => observer.observe(el));
+</script>

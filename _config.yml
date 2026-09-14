@@ -1,8 +1,0 @@
-title: "kernos"
-description: "Refresh-Aware Hybrid Continuous-Discrete Low-Rank Kernel"
-theme: minima
-logo: /assets/logo.svg
-show_downloads: false
-permalink: /:title/
-plugins:
-  - jekyll-feed

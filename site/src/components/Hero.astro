@@ -1,0 +1,233 @@
+---
+import Logo from "./Logo.astro";
+---
+
+<section class="relative isolate overflow-hidden pt-28 sm:pt-36 lg:pt-44">
+  <div
+    class="pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_at_top,#000_30%,transparent_70%)]"
+  >
+    <div
+      class="absolute -top-32 left-1/2 h-[640px] w-[1100px] -translate-x-1/2 rounded-full bg-accent-600/30 blur-[120px] animate-drift-slow"
+    >
+    </div>
+    <div
+      class="absolute right-[5%] top-40 h-[420px] w-[420px] rounded-full bg-blue-500/20 blur-[110px] animate-drift-slower"
+    >
+    </div>
+    <div
+      class="absolute left-[8%] top-72 h-[360px] w-[360px] rounded-full bg-cyan-500/15 blur-[100px] animate-drift-slow"
+    >
+    </div>
+  </div>
+
+  <div
+    class="pointer-events-none absolute inset-0 -z-10 opacity-[0.35] [mask-image:linear-gradient(180deg,#000_0%,transparent_60%)]"
+  >
+    <div class="absolute inset-0 bg-grid-soft bg-grid-32"></div>
+  </div>
+
+  <div class="container-page">
+    <div class="mx-auto max-w-4xl text-center">
+      <div class="reveal inline-flex">
+        <span class="chip">
+          <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-accent-400"></span>
+          <span class="text-ink-100">v0.2.0 — refresh-aware kernel learning</span>
+          <span class="text-ink-400">·</span>
+          <a
+            href="https://github.com/sachncs/kernos/releases"
+            class="text-ink-200 hover:text-white">release notes →</a
+          >
+        </span>
+      </div>
+
+      <h1
+        class="reveal mt-7 font-display text-[40px] font-semibold leading-[1.05] tracking-tightest gradient-text sm:text-6xl lg:text-7xl"
+        style="animation-delay:.05s"
+      >
+        Adaptive kernels,<br />
+        <span class="gradient-accent">refreshed when they drift.</span>
+      </h1>
+
+      <p
+        class="reveal mx-auto mt-6 max-w-2xl text-balance text-base leading-relaxed text-ink-300 sm:text-lg"
+        style="animation-delay:.1s"
+      >
+        Kernos is a Python library for <strong class="text-ink-100"
+          >refresh-aware hybrid continuous-discrete low-rank kernel learning</strong
+        >. Continuous parameters learn by gradient descent. Discrete landmarks refresh only when the basis drifts — so you scale to large-batch and streaming regression without rebuilding the world.
+      </p>
+
+      <div
+        class="reveal mt-9 flex flex-wrap items-center justify-center gap-3"
+        style="animation-delay:.15s"
+      >
+        <a
+          href="#install"
+          class="btn-primary px-6 py-3 text-[15px]"
+        >
+          <span>Install kernos</span>
+          <svg
+            viewBox="0 0 24 24"
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6"></path>
+          </svg>
+        </a>
+        <a
+          href="https://github.com/sachncs/kernos"
+          class="btn-ghost px-6 py-3 text-[15px]"
+        >
+          <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+            <path d="M12 .5C5.7.5.7 5.5.7 11.8c0 5 3.3 9.2 7.8 10.7.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2.9-.3 2-.4 3-.0 1-.3 2-.0 3 0 2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.5-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.5-1.5 7.8-5.7 7.8-10.7C23.3 5.5 18.3.5 12 .5z" />
+          </svg>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+
+      <div
+        class="reveal mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-ink-400"
+        style="animation-delay:.2s"
+      >
+        <div class="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-accent-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+          scikit-learn compatible
+        </div>
+        <div class="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-accent-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+          PSD kernel guarantee
+        </div>
+        <div class="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-accent-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+          Streaming &amp; cached modes
+        </div>
+        <div class="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-accent-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+          MIT licensed
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal relative mx-auto mt-20 max-w-5xl" style="animation-delay:.25s">
+      <div
+        class="absolute -inset-x-12 -top-10 -bottom-10 -z-10 rounded-[40px] bg-accent-500/10 blur-3xl"
+      >
+      </div>
+
+      <div class="gradient-border relative overflow-hidden rounded-3xl shadow-card">
+        <div
+          class="absolute inset-0 -z-10 opacity-70 [mask-image:linear-gradient(180deg,#000_0%,transparent_75%)]"
+        >
+          <div class="absolute inset-0 bg-grid-soft bg-grid-32"></div>
+        </div>
+
+        <div
+          class="relative flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-5 py-3"
+        >
+          <div class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+          </div>
+          <div class="flex items-center gap-2 text-[12px] text-ink-400">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            quickstart.py
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-ink-500">
+            <span class="hidden sm:inline">python 3.12</span>
+          </div>
+        </div>
+
+        <div class="grid gap-0 lg:grid-cols-[1fr_280px]">
+          <pre
+            class="overflow-x-auto px-6 py-6 font-mono text-[13.5px] leading-relaxed text-ink-100 sm:px-8 sm:text-[14px]"
+            set:html={`<code><span style="color:#85858e"># refresh-aware hybrid kernel regression</span>
+<span style="color:#c084fc">import</span> numpy <span style="color:#c084fc">as</span> np
+<span style="color:#c084fc">from</span> kernos <span style="color:#c084fc">import</span> Kernos
+
+rng = np.random.default_rng(<span style="color:#fcd34d">42</span>)
+X_train = rng.standard_normal((<span style="color:#fcd34d">4000</span>, <span style="color:#fcd34d">8</span>))
+y_train = X_train[:, <span style="color:#fcd34d">0</span>] + <span style="color:#fcd34d">0.5</span> * X_train[:, <span style="color:#fcd34d">1</span>] ** <span style="color:#fcd34d">2</span> + <span style="color:#fcd34d">0.1</span> * rng.standard_normal(<span style="color:#fcd34d">4000</span>)
+X_test  = rng.standard_normal((<span style="color:#fcd34d">1000</span>, <span style="color:#fcd34d">8</span>))
+
+model = <span style="color:#7c5cff">Kernos</span>(
+    dim=<span style="color:#fcd34d">64</span>, mbasis=<span style="color:#fcd34d">256</span>, abasis=<span style="color:#fcd34d">32</span>,
+    ridge=<span style="color:#fcd34d">1e-2</span>, steps=<span style="color:#fcd34d">500</span>, seed=<span style="color:#fcd34d">42</span>,
+).fit(X_train, y_train)
+
+<span style="color:#c084fc">print</span>(<span style="color:#86efac">f"R² on held-out: "</span>
+      <span style="color:#86efac">f"</span>{model.score(X_test, y_test):.4f}<span style="color:#86efac">"</span>)
+<span style="color:#85858e"># → R² on held-out: 0.8923</span></code>`}>
+          </pre>
+
+          <div
+            class="hidden border-l border-white/5 bg-white/[0.015] px-6 py-6 lg:block"
+          >
+            <div class="text-[11px] uppercase tracking-widest text-ink-500">
+              What happens inside
+            </div>
+            <ul class="mt-4 space-y-3 text-[13px] text-ink-200">
+              <li class="flex gap-3">
+                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+                <span><span class="text-ink-100">Global Nyström basis</span> selected via k-means++ and whitened.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+                <span><span class="text-ink-100">Continuous θ, R</span> updated every step with gradient descent.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+                <span><span class="text-ink-100">Drift-aware refresh</span> only when the basis drifts past a threshold.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-400"></span>
+                <span><span class="text-ink-100">Logistic gate</span> fuses global and local features.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="container-page mt-24 border-t border-white/5 pt-10 lg:mt-32"
+    id="trust"
+  >
+    <p
+      class="text-center text-[11px] uppercase tracking-[0.18em] text-ink-500"
+    >
+      Built on the shoulders of
+    </p>
+    <div
+      class="mx-auto mt-7 flex max-w-3xl flex-wrap items-center justify-center gap-x-10 gap-y-3 text-ink-400 sm:gap-x-14"
+    >
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">NumPy</span>
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">SciPy</span>
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">scikit-learn</span>
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">HuggingFace</span>
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">PyPI</span>
+      <span class="font-display text-[15px] font-medium tracking-tight text-ink-300/80 transition hover:text-white">pytest</span>
+    </div>
+  </div>
+</section>
+
+<script>
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.05, rootMargin: "0px 0px -10% 0px" }
+  );
+  document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+</script>

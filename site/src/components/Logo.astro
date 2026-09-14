@@ -1,0 +1,39 @@
+---
+export interface Props {
+  class?: string;
+}
+const { class: cls = "h-8 w-8" } = Astro.props;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  class={cls}
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="kg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8e6cff" />
+      <stop offset="0.5" stop-color="#6366f1" />
+      <stop offset="1" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="kg2" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.98" />
+      <stop offset="1" stop-color="#e9e3ff" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#kg)" />
+  <rect
+    x="0.5"
+    y="0.5"
+    width="63"
+    height="63"
+    rx="13.5"
+    fill="none"
+    stroke="rgba(255,255,255,0.18)"
+  />
+  <path
+    d="M22 14 H26 V31.5 L42 14 H47.5 L33 30 L48.5 50 H43 L31.5 35.5 L26 41 V50 H22 Z"
+    fill="url(#kg2)"
+  />
+</svg>
